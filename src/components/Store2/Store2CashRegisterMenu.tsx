@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import '../../index.css';
 import { supabase } from '../../lib/supabase';
+import { getPaymentMethodName } from '../../utils/formatters';
 import { useStore2PDVCashRegister } from '../../hooks/useStore2PDVCashRegister';
 import { 
   DollarSign,
