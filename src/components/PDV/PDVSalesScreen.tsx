@@ -1,59 +1,73 @@
-import React, { useState } from 'react';
-import '../../index.css';
-import { supabase } from '../../lib/supabase';
-import { useStore2PDVCashRegister } from '../../hooks/useStore2PDVCashRegister';
-import { 
-  DollarSign,
-  ArrowDownCircle, 
-  ArrowUpCircle,  
-  Plus, 
-  Minus,
-  ShoppingBag, 
-  Clock, 
-  RefreshCw,
-  AlertCircle,
-  X,
-  Printer
-} from 'lucide-react';
-import Store2CashRegisterPrintView from '../Store2/Store2CashRegisterPrintView';
-import Store2CashRegisterDetails from '../Store2/Store2CashRegisterDetails';
+import React, { useState, useEffect, useRef } from 'react';
+import { Calculator, Package, BarChart3, Settings, Users, ArrowLeft, DollarSign, Bell, FileText, LogOut, User, Layers, ChevronUp, ChevronDown, Truck, ShoppingBag, MessageSquare, Search, Plus, Minus, Trash2, Scale, X, Check, AlertCircle, RefreshCw } from 'lucide-react';
+import { usePDVProducts, usePDVSales, usePDVCart } from '../../hooks/usePDV';
+import { useScale } from '../../hooks/useScale';
+import { usePDVCashRegister } from '../../hooks/usePDVCashRegister';
+import { useRecommendations } from '../../hooks/useRecommendations';
+import { useCashback } from '../../hooks/useCashback';
+import { PDVProduct, PDVOperator, PDVCartItem, WeightReading } from '../../types/pdv';
+import { PesagemModal } from './PesagemModal';
 
-const Store2CashRegisterMenu: React.FC = () => {
+interface PDVSalesScreenProps {
+  operator?: PDVOperator;
+  scaleHook?: ReturnType<typeof useScale>;
+  storeSettings?: any;
+}
+
+const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ operator, scaleHook, storeSettings }) => {
+  const { products, loading: productsLoading, searchProducts } = usePDVProducts();
+  const { createSale, loading: salesLoading } = usePDVSales();
+  const { isOpen: isCashRegisterOpen, currentRegister } = usePDVCashRegister();
+  const { getRecommendations } = useRecommendations();
+  const { getOrCreateCustomer, createPurchaseTransaction } = useCashback();
+  
   const {
-    isOpen,
-    currentRegister,
-    summary,
-    entries,
-    loading,
-    error,
-    refreshData
-  } = useStore2PDVCashRegister();
+    items,
+    addItem,
+    removeItem,
+    updateItemQuantity,
+    updateItemWeight,
+    applyItemDiscount,
+    setDiscount,
+    updatePaymentInfo,
+    clearCart,
+    getSubtotal,
+    getDiscountAmount,
+    getTotal,
+    itemCount,
+    totalItems,
+    discount,
+    paymentInfo
+  } = usePDVCart();
 
-  const [supabaseConfigured, setSupabaseConfigured] = useState(true);
-  const [showOpenRegister, setShowOpenRegister] = useState(false);
-  const [showCashEntry, setShowCashEntry] = useState(false);
-  const [openingAmount, setOpeningAmount] = useState('');
-  const [closingAmount, setClosingAmount] = useState('');
-  const [entryType, setEntryType] = useState<'income' | 'expense'>('income');
-  const [entryAmount, setEntryAmount] = useState('');
-  const [entryDescription, setEntryDescription] = useState('');
-  const [entryPaymentMethod, setEntryPaymentMethod] = useState('dinheiro');
-  const [showCloseModal, setShowCloseModal] = useState(false);
-  const [showPrintView, setShowPrintView] = useState(false);
-  const [closedRegisterData, setClosedRegisterData] = useState<any>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [showWeightModal, setShowWeightModal] = useState(false);
+  const [selectedWeighableProduct, setSelectedWeighableProduct] = useState<PDVProduct | null>(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [customerName, setCustomerName] = useState('');
+  const [isProcessingSale, setIsProcessingSale] = useState(false);
 
-  // Check Supabase configuration on mount
-  React.useEffect(() => {
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  const categories = [
+    { id: 'all', label: 'Todas' },
+    { id: 'acai', label: 'Açaí' },
+    { id: 'sorvetes', label: 'Sorvetes' },
+    { id: 'bebidas', label: 'Bebidas' },
+    { id: 'complementos', label: 'Complementos' },
+    { id: 'sobremesas', label: 'Sobremesas' },
+    { id: 'outros', label: 'Outros' }
+  ];
+
+  const filteredProducts = React.useMemo(() => {
+    let result = searchTerm ? searchProducts(searchTerm) : products;
     
-    const isConfigured = supabaseUrl && supabaseKey && 
-                        supabaseUrl !== 'your_supabase_url_here' && 
-                        supabaseKey !== 'your_supabase_anon_key_here' &&
-                        !supabaseUrl.includes('placeholder');
+    if (selectedCategory !== 'all') {
+      result = result.filter(p => p.category === selectedCategory);
+    }
     
-    setSupabaseConfigured(isConfigured);
-  }, []);
+    return result;
+  }, [products, searchProducts, searchTerm, selectedCategory]);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -62,676 +76,475 @@ const Store2CashRegisterMenu: React.FC = () => {
     }).format(price);
   };
 
-  const handleOpenRegister = async () => {
-    if (!openingAmount) return;
-    
-    try {
-      console.log('🚀 Abrindo caixa da Loja 2 com valor:', parseFloat(openingAmount));
-      
-      const { data, error } = await supabase
-        .from('pdv2_cash_registers')
-        .insert([{
-          opening_amount: parseFloat(openingAmount),
-          opened_at: new Date().toISOString()
-        }])
-        .select()
-        .single();
-        
-      if (error) {
-        console.error('Erro ao abrir caixa da Loja 2:', error);
-        throw error;
-      }
-      
-      console.log('✅ Caixa da Loja 2 aberto com sucesso:', data.id);
-      await refreshData();
-      
-      setShowOpenRegister(false);
-      setOpeningAmount('');
-    } catch (err) {
-      console.error('Erro ao abrir caixa da Loja 2:', err);
-      alert('Erro ao abrir caixa. Tente novamente.');
+  const handleAddProduct = (product: PDVProduct) => {
+    if (product.is_weighable) {
+      setSelectedWeighableProduct(product);
+      setShowWeightModal(true);
+    } else {
+      addItem(product, 1);
     }
   };
 
-  const handleCloseRegister = async () => {
-    if (!currentRegister || !summary) {
-      alert('Erro: Dados do caixa não disponíveis');
+  const handleWeightConfirm = (weightInGrams: number) => {
+    if (selectedWeighableProduct) {
+      const weightInKg = weightInGrams / 1000;
+      addItem(selectedWeighableProduct, 1, weightInKg);
+    }
+    setShowWeightModal(false);
+    setSelectedWeighableProduct(null);
+  };
+
+  const handleFinalizeSale = () => {
+    if (items.length === 0) {
+      alert('Adicione produtos ao carrinho antes de finalizar a venda');
       return;
     }
-    
-    const expectedBalance = summary.expected_balance || 0;
-    setClosingAmount(expectedBalance.toFixed(2));
-    setShowCloseModal(true);
-  };
-  
-  const handleConfirmClose = async () => {
-    if (!closingAmount) {
-      alert('Digite o valor de fechamento');
+
+    if (!isCashRegisterOpen) {
+      alert('Não é possível finalizar vendas sem um caixa aberto');
       return;
     }
-    
-    try {
-      console.log('🔒 Fechando caixa da Loja 2 com valor:', parseFloat(closingAmount));
-      
-      const { data, error } = await supabase
-        .from('pdv2_cash_registers')
-        .update({
-          closing_amount: parseFloat(closingAmount),
-          closed_at: new Date().toISOString(),
-          difference: parseFloat(closingAmount) - (summary?.expected_balance || 0)
-        })
-        .eq('id', currentRegister.id)
-        .select()
-        .single();
-      
-      if (error) {
-        console.error('❌ Erro ao fechar caixa da Loja 2:', error);
-        alert(`Erro ao fechar caixa: ${error.message}`);
-        return;
-      }
-      
-      console.log('✅ Caixa da Loja 2 fechado com sucesso');
-      
-      // Salvar dados do caixa fechado para impressão
-      setClosedRegisterData({
-        ...currentRegister,
-        closing_amount: parseFloat(closingAmount),
-        closed_at: new Date().toISOString(),
-        difference: parseFloat(closingAmount) - (summary?.expected_balance || 0)
-      });
-      
-      showSuccessNotification();
-      setShowCloseModal(false);
-      setClosingAmount('');
-      await refreshData();
-    } catch (err) {
-      console.error('Erro ao fechar caixa da Loja 2:', err);
-      alert('Erro ao fechar caixa. Tente novamente.');
-    }
-  };
-  
-  const showSuccessNotification = () => {
-    const notification = document.createElement('div');
-    notification.className = 'fixed top-4 right-4 z-50 transform transition-all duration-500 ease-out translate-x-full';
-    notification.innerHTML = `
-      <div class="bg-white rounded-2xl shadow-2xl border border-green-200 p-6 max-w-sm w-full">
-        <div class="flex items-start gap-4">
-          <div class="bg-gradient-to-br from-green-400 to-emerald-500 rounded-full p-3 flex-shrink-0 shadow-lg">
-            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-            </svg>
-          </div>
-          <div class="flex-1">
-            <h3 class="text-xl font-bold text-gray-900 mb-2">
-              ✅ Caixa Fechado com Sucesso!
-            </h3>
-            <p class="text-gray-600 mb-4">
-              O caixa da Loja 2 foi fechado e todas as movimentações foram registradas.
-            </p>
-            <div class="bg-gradient-to-r from-blue-50 to-green-50 border border-blue-200 rounded-lg p-3 mb-4">
-              <div class="flex items-center gap-2 mb-2">
-                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
-                </svg>
-                <span class="font-semibold text-blue-800">Resumo Final:</span>
-              </div>
-              <div class="space-y-1 text-sm">
-                <div class="flex justify-between">
-                  <span class="text-blue-700">Valor de fechamento:</span>
-                  <span class="font-bold text-blue-900">${closingAmount ? parseFloat(closingAmount).toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'}) : 'R$ 0,00'}</span>
-                </div>
-                <div class="flex justify-between">
-                  <span class="text-blue-700">Saldo esperado:</span>
-                  <span class="font-medium text-blue-800">${(summary?.expected_balance || 0).toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'})}</span>
-                </div>
-                ${closingAmount && parseFloat(closingAmount) !== (summary?.expected_balance || 0) ? `
-                <div class="flex justify-between pt-2 border-t border-blue-200">
-                  <span class="text-blue-700">Diferença:</span>
-                  <span class="font-bold ${parseFloat(closingAmount) > (summary?.expected_balance || 0) ? 'text-green-600' : 'text-red-600'}">
-                    ${Math.abs(parseFloat(closingAmount) - (summary?.expected_balance || 0)).toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'})}
-                    ${parseFloat(closingAmount) > (summary?.expected_balance || 0) ? ' (sobra)' : ' (falta)'}
-                  </span>
-                </div>
-                ` : ''}
-              </div>
-            </div>
-            <div class="flex gap-2">
-              <button 
-                onclick="window.location.href='/relatorios_loja2'" 
-                class="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg"
-              >
-                📊 Ver Relatórios
-              </button>
-              <button 
-                onclick="document.querySelector('[data-print-cash]').click()" 
-                class="flex-1 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg"
-              >
-                🖨️ Imprimir Caixa
-              </button>
-              <button 
-                onclick="this.closest('.fixed').remove()" 
-                class="flex-1 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg"
-              >
-                ✅ OK
-              </button>
-            </div>
-          </div>
-        </div>
-        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-green-400 to-emerald-500 rounded-t-2xl"></div>
-      </div>
-    `;
-    
-    document.body.appendChild(notification);
-    
-    // Animate in
-    setTimeout(() => {
-      notification.classList.remove('translate-x-full');
-      notification.classList.add('translate-x-0');
-    }, 100);
-    
-    // Auto remove after 10 seconds
-    setTimeout(() => {
-      if (document.body.contains(notification)) {
-        notification.classList.add('translate-x-full');
-        setTimeout(() => {
-          if (document.body.contains(notification)) {
-            document.body.removeChild(notification);
-          }
-        }, 500);
-      }
-    }, 10000);
-  };
-  
-  const handleCancelClose = () => {
-    setShowCloseModal(false);
-    setClosingAmount('');
+
+    setShowPaymentModal(true);
   };
 
-  const handleCashEntry = async () => {
-    if (!entryAmount || !entryDescription) return;
-    
+  const handleConfirmSale = async () => {
+    if (!paymentInfo.method) {
+      alert('Selecione uma forma de pagamento');
+      return;
+    }
+
+    setIsProcessingSale(true);
+
     try {
-      console.log('💰 Adicionando entrada ao caixa da Loja 2:', {
-        type: entryType,
-        amount: parseFloat(entryAmount),
-        description: entryDescription,
-        payment_method: entryPaymentMethod
-      });
-      
-      const { data, error } = await supabase
-        .from('pdv2_cash_entries')
-        .insert([{
-          register_id: currentRegister.id,
-          type: entryType,
-          amount: parseFloat(entryAmount),
-          description: entryDescription,
-          payment_method: entryPaymentMethod
-        }])
-        .select()
-        .single();
-      
-      if (error) {
-        console.error('Erro ao adicionar entrada da Loja 2:', error);
-        throw error;
+      // Preparar dados da venda
+      const saleData = {
+        operator_id: operator?.id,
+        customer_name: customerName || undefined,
+        customer_phone: customerPhone || undefined,
+        subtotal: getSubtotal(),
+        discount_amount: getDiscountAmount(),
+        discount_percentage: discount.type === 'percentage' ? discount.value : 0,
+        total_amount: getTotal(),
+        payment_type: paymentInfo.method,
+        payment_details: paymentInfo.changeFor ? { change_for: paymentInfo.changeFor } : undefined,
+        change_amount: paymentInfo.changeFor ? Math.max(0, paymentInfo.changeFor - getTotal()) : 0,
+        notes: '',
+        is_cancelled: false
+      };
+
+      // Preparar itens da venda
+      const saleItems = items.map(item => ({
+        product_id: item.product.id,
+        product_code: item.product.code,
+        product_name: item.product.name,
+        quantity: item.quantity,
+        weight_kg: item.weight,
+        unit_price: item.product.unit_price,
+        price_per_gram: item.product.price_per_gram,
+        discount_amount: item.discount,
+        subtotal: item.subtotal
+      }));
+
+      // Criar venda
+      const sale = await createSale(saleData, saleItems);
+
+      // Processar cashback se cliente identificado
+      if (customerPhone && customerPhone.length >= 11) {
+        try {
+          const customer = await getOrCreateCustomer(customerPhone, customerName);
+          await createPurchaseTransaction(customer.id, getTotal(), sale.id);
+        } catch (cashbackError) {
+          console.warn('Erro ao processar cashback (venda salva):', cashbackError);
+        }
       }
-      
-      console.log('✅ Entrada da Loja 2 adicionada com sucesso:', data);
-      await refreshData();
-      
-      setShowCashEntry(false);
-      setEntryAmount('');
-      setEntryDescription('');
-      setEntryType('income');
-      setEntryPaymentMethod('dinheiro');
-    } catch (err) {
-      console.error('Erro ao adicionar entrada da Loja 2:', err);
-      alert('Erro ao adicionar entrada. Tente novamente.');
+
+      // Limpar carrinho e fechar modal
+      clearCart();
+      setShowPaymentModal(false);
+      setCustomerPhone('');
+      setCustomerName('');
+
+      alert(`Venda #${sale.sale_number} finalizada com sucesso!`);
+
+    } catch (error) {
+      console.error('Erro ao finalizar venda:', error);
+      alert('Erro ao finalizar venda. Tente novamente.');
+    } finally {
+      setIsProcessingSale(false);
     }
   };
 
-  if (loading) {
+  if (productsLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+        <span className="ml-2 text-gray-600">Carregando produtos...</span>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      {/* Supabase Configuration Warning */}
-      {!supabaseConfigured && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-          <div className="flex items-center gap-3">
-            <div className="bg-red-100 rounded-full p-2">
-              <AlertCircle size={20} className="text-red-600" />
-            </div>
-            <div>
-              <h3 className="font-medium text-red-800">Funcionalidade de Caixa Indisponível - Loja 2</h3>
-              <p className="text-red-700 text-sm">
-                O sistema de caixa requer configuração do Supabase.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-      
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
-            <DollarSign size={24} />
-            Controle de Caixa - Loja 2
+            <Calculator size={24} className="text-green-600" />
+            Vendas PDV
           </h2>
-          <p className="text-sm text-gray-600 mt-1">
-            {isOpen ? 'Caixa aberto' : 'Caixa fechado'}
-          </p>
+          <p className="text-gray-600">Sistema de vendas presenciais</p>
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={refreshData}
-            className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg transition-colors text-sm"
-          >
-            <RefreshCw size={16} />
-            Atualizar
-          </button>
-          
-          {isOpen && (
-            <button
-              onClick={handleCloseRegister}
-              className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg transition-colors text-sm"
-            >
-              <Clock size={16} />
-              Fechar Caixa
-            </button>
-          )}
-        </div>
-      </div>
-
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-          {error}
-        </div>
-      )}
-
-      {/* Status Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className={`p-4 rounded-lg border-2 ${isOpen ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Status do Caixa</p>
-              <p className={`text-lg font-semibold ${isOpen ? 'text-green-600' : 'text-gray-600'}`}>
-                {isOpen ? 'Aberto' : 'Fechado'}
-              </p>
-            </div>
-            <div className={`p-2 rounded-full ${isOpen ? 'bg-green-100' : 'bg-gray-100'}`}>
-              <DollarSign className={`h-6 w-6 ${isOpen ? 'text-green-600' : 'text-gray-600'}`} />
-            </div>
-          </div>
-        </div>
-
-        {currentRegister && (
-          <>
-            <div className="p-4 rounded-lg border-2 bg-blue-50 border-blue-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Valor de Abertura</p>
-                  <p className="text-lg font-semibold text-blue-600">
-                    {formatPrice(currentRegister.opening_amount || 0)}
-                  </p>
-                </div>
-                <div className="p-2 rounded-full bg-blue-100">
-                  <ArrowUpCircle className="h-6 w-6 text-blue-600" />
-                </div>
-              </div>
-            </div>
-
-            <div className="p-4 rounded-lg border-2 bg-purple-50 border-purple-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Saldo Atual</p>
-                  <p className="text-lg font-semibold text-purple-600">
-                    {formatPrice(summary.expected_balance)}
-                  </p>
-                </div>
-                <div className="p-2 rounded-full bg-purple-100">
-                  <ShoppingBag className="h-6 w-6 text-purple-600" />
-                </div>
-              </div>
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* Action Buttons */}
-      <div className="flex flex-wrap gap-3">
-        {!isOpen && (
-          <button
-            onClick={() => setShowOpenRegister(true)}
-            disabled={!supabaseConfigured}
-            className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors"
-          >
-            <Plus size={18} />
-            Abrir Caixa
-          </button>
-        )}
-
-        {isOpen && supabaseConfigured && (
-          <>
-            <button
-              onClick={() => setShowCashEntry(true)}
-              className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors"
-            >
-              <ArrowDownCircle size={18} />
-              Adicionar Entrada
-            </button>
-
-            <button
-              onClick={() => {
-                setEntryType('expense');
-                setShowCashEntry(true);
-              }}
-              className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg transition-colors"
-            >
-              <ArrowUpCircle size={18} />
-              Adicionar Saída
-            </button>
-          </>
-        )}
         
-        {/* Botão de impressão oculto para ser chamado pela notificação */}
-        <button
-          data-print-cash
-          onClick={() => setShowPrintView(true)}
-          className="hidden"
-        />
+        {itemCount > 0 && (
+          <div className="bg-green-100 text-green-800 px-4 py-2 rounded-lg font-medium">
+            {totalItems} item(s) - {formatPrice(getTotal())}
+          </div>
+        )}
       </div>
 
-      {/* Resumo do Caixa */}
-      {currentRegister && (
-        <>
-          <Store2CashRegisterDetails register={currentRegister} summary={summary} onRefresh={refreshData} />
-          
-          {/* Histórico de Movimentações */}
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-            <div className="p-4 border-b border-gray-200">
+      {/* Search and Filters */}
+      <div className="bg-white rounded-xl shadow-sm p-4">
+        <div className="flex flex-col lg:flex-row gap-4">
+          <div className="flex-1">
+            <div className="relative">
+              <Search size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Buscar produtos..."
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
             </div>
           </div>
-        </>
-      )}
 
-      {/* Open Register Modal */}
-      {showOpenRegister && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Abrir Caixa - Loja 2</h3>
-              <button
-                onClick={() => setShowOpenRegister(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Valor de Abertura
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={openingAmount}
-                  onChange={(e) => setOpeningAmount(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="0,00"
-                />
-              </div>
-
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setShowOpenRegister(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleOpenRegister}
-                  disabled={!openingAmount}
-                  className="flex-1 bg-green-500 hover:bg-green-600 disabled:bg-gray-300 text-white px-4 py-2 rounded-lg transition-colors"
-                >
-                  Abrir Caixa
-                </button>
-              </div>
-            </div>
+          <div className="lg:w-64">
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+            >
+              {categories.map(cat => (
+                <option key={cat.id} value={cat.id}>{cat.label}</option>
+              ))}
+            </select>
           </div>
         </div>
-      )}
+      </div>
 
-      {/* Modal de Fechamento de Caixa */}
-      {showCloseModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Fechar Caixa - Loja 2</h3>
-              <button
-                onClick={handleCancelClose}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X size={20} />
-              </button>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Products Grid */}
+        <div className="lg:col-span-2">
+          <div className="bg-white rounded-xl shadow-sm p-4">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">Produtos</h3>
+            
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {filteredProducts.map((product) => (
+                <div
+                  key={product.id}
+                  onClick={() => handleAddProduct(product)}
+                  className="bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg p-4 cursor-pointer transition-colors"
+                >
+                  <div className="text-center">
+                    <div className="w-16 h-16 mx-auto mb-2 bg-gray-200 rounded-lg flex items-center justify-center">
+                      {product.image_url ? (
+                        <img 
+                          src={product.image_url} 
+                          alt={product.name}
+                          className="w-full h-full object-cover rounded-lg"
+                        />
+                      ) : (
+                        <Package size={24} className="text-gray-400" />
+                      )}
+                    </div>
+                    <h4 className="font-medium text-gray-800 text-sm mb-1">{product.name}</h4>
+                    <p className="text-xs text-gray-500 mb-2">{product.code}</p>
+                    
+                    {product.is_weighable ? (
+                      <div className="flex items-center justify-center gap-1 text-green-600 font-semibold text-sm">
+                        <Scale size={14} />
+                        {formatPrice((product.price_per_gram || 0) * 1000)}/kg
+                      </div>
+                    ) : (
+                      <div className="font-semibold text-green-600 text-sm">
+                        {formatPrice(product.unit_price || 0)}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
 
-            <div className="space-y-4">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 className="font-medium text-blue-800 mb-2">Resumo do Caixa</h4>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span>Valor de abertura:</span>
-                    <span className="font-medium">{formatPrice(currentRegister?.opening_amount || 0)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Vendas:</span>
-                    <span className="font-medium text-green-600">{formatPrice(summary?.sales_total || 0)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Outras entradas:</span>
-                    <span className="font-medium text-green-600">{formatPrice(summary?.other_income_total || 0)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Saídas:</span>
-                    <span className="font-medium text-red-600">{formatPrice(summary?.total_expense || 0)}</span>
-                  </div>
-                  <div className="pt-2 border-t border-blue-200">
-                    <div className="flex justify-between font-medium">
-                      <span>Saldo esperado:</span>
-                      <span className="text-blue-800">{formatPrice(summary?.expected_balance || 0)}</span>
+            {filteredProducts.length === 0 && (
+              <div className="text-center py-12">
+                <Package size={48} className="mx-auto text-gray-300 mb-4" />
+                <p className="text-gray-500">
+                  {searchTerm || selectedCategory !== 'all' 
+                    ? 'Nenhum produto encontrado' 
+                    : 'Nenhum produto disponível'
+                  }
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Cart */}
+        <div className="lg:col-span-1">
+          <div className="bg-white rounded-xl shadow-sm p-4 sticky top-4">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              <ShoppingBag size={20} className="text-green-600" />
+              Carrinho ({itemCount})
+            </h3>
+
+            {items.length === 0 ? (
+              <div className="text-center py-8">
+                <ShoppingBag size={32} className="mx-auto text-gray-300 mb-2" />
+                <p className="text-gray-500 text-sm">Carrinho vazio</p>
+              </div>
+            ) : (
+              <div className="space-y-3 mb-4 max-h-64 overflow-y-auto">
+                {items.map((item, index) => (
+                  <div key={index} className="bg-gray-50 rounded-lg p-3">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex-1">
+                        <h4 className="font-medium text-gray-800 text-sm">{item.product.name}</h4>
+                        <p className="text-xs text-gray-500">{item.product.code}</p>
+                        {item.weight && (
+                          <p className="text-xs text-blue-600">Peso: {(item.weight * 1000).toFixed(0)}g</p>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => removeItem(item.product.id)}
+                        className="text-red-500 hover:text-red-700 p-1"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => updateItemQuantity(item.product.id, item.quantity - 1)}
+                          className="bg-gray-200 hover:bg-gray-300 rounded-full p-1"
+                        >
+                          <Minus size={12} />
+                        </button>
+                        <span className="text-sm font-medium w-8 text-center">{item.quantity}</span>
+                        <button
+                          onClick={() => updateItemQuantity(item.product.id, item.quantity + 1)}
+                          className="bg-gray-200 hover:bg-gray-300 rounded-full p-1"
+                        >
+                          <Plus size={12} />
+                        </button>
+                      </div>
+                      <span className="font-semibold text-green-600 text-sm">
+                        {formatPrice(item.subtotal)}
+                      </span>
                     </div>
                   </div>
+                ))}
+              </div>
+            )}
+
+            {/* Cart Summary */}
+            {items.length > 0 && (
+              <div className="border-t border-gray-200 pt-4 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>Subtotal:</span>
+                  <span>{formatPrice(getSubtotal())}</span>
+                </div>
+                
+                {getDiscountAmount() > 0 && (
+                  <div className="flex justify-between text-sm text-green-600">
+                    <span>Desconto:</span>
+                    <span>-{formatPrice(getDiscountAmount())}</span>
+                  </div>
+                )}
+                
+                <div className="flex justify-between font-bold text-lg border-t border-gray-200 pt-2">
+                  <span>Total:</span>
+                  <span className="text-green-600">{formatPrice(getTotal())}</span>
+                </div>
+
+                <div className="space-y-2 mt-4">
+                  <button
+                    onClick={handleFinalizeSale}
+                    disabled={!isCashRegisterOpen || isProcessingSale}
+                    className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white py-3 rounded-lg font-semibold transition-colors"
+                  >
+                    {!isCashRegisterOpen ? 'Caixa Fechado' : 'Finalizar Venda'}
+                  </button>
+                  
+                  <button
+                    onClick={clearCart}
+                    className="w-full bg-gray-500 hover:bg-gray-600 text-white py-2 rounded-lg font-medium transition-colors"
+                  >
+                    Limpar Carrinho
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Weight Modal */}
+      {showWeightModal && selectedWeighableProduct && (
+        <PesagemModal
+          produto={selectedWeighableProduct}
+          onConfirmar={handleWeightConfirm}
+          onFechar={() => {
+            setShowWeightModal(false);
+            setSelectedWeighableProduct(null);
+          }}
+        />
+      )}
+
+      {/* Payment Modal */}
+      {showPaymentModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-gray-800">Finalizar Venda</h2>
+                <button
+                  onClick={() => setShowPaymentModal(false)}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {/* Customer Info */}
+              <div className="space-y-3">
+                <h3 className="font-medium text-gray-800">Dados do Cliente (Opcional)</h3>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Nome
+                  </label>
+                  <input
+                    type="text"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    placeholder="Nome do cliente"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Telefone
+                  </label>
+                  <input
+                    type="tel"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    placeholder="(85) 99999-9999"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Para cashback automático
+                  </p>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Valor de Fechamento
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={closingAmount}
-                  onChange={(e) => setClosingAmount(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                  placeholder="0,00"
-                />
+              {/* Payment Method */}
+              <div className="space-y-3">
+                <h3 className="font-medium text-gray-800">Forma de Pagamento</h3>
                 
-                {/* Aviso de diferença */}
-                {closingAmount && parseFloat(closingAmount) !== (summary?.expected_balance || 0) && (
-                  <div className={`mt-2 p-3 rounded-lg border ${
-                    parseFloat(closingAmount) > (summary?.expected_balance || 0)
-                      ? 'bg-green-50 border-green-200'
-                      : 'bg-red-50 border-red-200'
-                  }`}>
-                    <div className="flex items-center gap-2">
-                      <AlertCircle size={16} className={
-                        parseFloat(closingAmount) > (summary?.expected_balance || 0)
-                          ? 'text-green-600'
-                          : 'text-red-600'
-                      } />
-                      <div>
-                        <p className={`text-sm font-medium ${
-                          parseFloat(closingAmount) > (summary?.expected_balance || 0)
-                            ? 'text-green-800'
-                            : 'text-red-800'
-                        }`}>
-                          {parseFloat(closingAmount) > (summary?.expected_balance || 0) ? '💰 Sobra no Caixa' : '⚠️ Falta no Caixa'}
-                        </p>
-                        <p className={`text-sm ${
-                          parseFloat(closingAmount) > (summary?.expected_balance || 0)
-                            ? 'text-green-700'
-                            : 'text-red-700'
-                        }`}>
-                          Diferença: {formatPrice(Math.abs(parseFloat(closingAmount) - (summary?.expected_balance || 0)))}
-                          {parseFloat(closingAmount) > (summary?.expected_balance || 0) ? ' a mais' : ' a menos'}
-                        </p>
-                        <p className={`text-xs mt-1 ${
-                          parseFloat(closingAmount) > (summary?.expected_balance || 0)
-                            ? 'text-green-600'
-                            : 'text-red-600'
-                        }`}>
-                          Saldo esperado: {formatPrice(summary?.expected_balance || 0)}
-                        </p>
-                      </div>
-                    </div>
+                <div className="space-y-2">
+                  {[
+                    { value: 'dinheiro', label: 'Dinheiro' },
+                    { value: 'pix', label: 'PIX' },
+                    { value: 'cartao_credito', label: 'Cartão de Crédito' },
+                    { value: 'cartao_debito', label: 'Cartão de Débito' },
+                    { value: 'voucher', label: 'Voucher' }
+                  ].map(method => (
+                    <label key={method.value} className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name="payment"
+                        value={method.value}
+                        checked={paymentInfo.method === method.value}
+                        onChange={(e) => updatePaymentInfo({ method: e.target.value as any })}
+                        className="text-green-600"
+                      />
+                      <span>{method.label}</span>
+                    </label>
+                  ))}
+                </div>
+
+                {paymentInfo.method === 'dinheiro' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Troco para quanto?
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={paymentInfo.changeFor || ''}
+                      onChange={(e) => updatePaymentInfo({ changeFor: parseFloat(e.target.value) || undefined })}
+                      className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                      placeholder="Valor para troco"
+                    />
                   </div>
                 )}
               </div>
 
-              <div className="flex gap-2">
-                <button
-                  onClick={handleCancelClose}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleConfirmClose}
-                  disabled={!closingAmount}
-                  className="flex-1 bg-red-500 hover:bg-red-600 disabled:bg-gray-300 text-white px-4 py-2 rounded-lg transition-colors"
-                >
-                  Fechar Caixa
-                </button>
+              {/* Sale Summary */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h4 className="font-medium text-gray-800 mb-2">Resumo da Venda</h4>
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span>Subtotal:</span>
+                    <span>{formatPrice(getSubtotal())}</span>
+                  </div>
+                  {getDiscountAmount() > 0 && (
+                    <div className="flex justify-between text-green-600">
+                      <span>Desconto:</span>
+                      <span>-{formatPrice(getDiscountAmount())}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between font-bold text-lg border-t border-gray-200 pt-1">
+                    <span>Total:</span>
+                    <span className="text-green-600">{formatPrice(getTotal())}</span>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-      )}
 
-      {/* Cash Entry Modal */}
-      {showCashEntry && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">
-                {entryType === 'income' ? 'Adicionar Entrada' : 'Adicionar Saída'} - Loja 2
-              </h3>
+            <div className="p-6 border-t border-gray-200 flex gap-3">
               <button
-                onClick={() => setShowCashEntry(false)}
-                className="text-gray-400 hover:text-gray-600"
+                onClick={() => setShowPaymentModal(false)}
+                className="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 rounded-lg font-medium transition-colors"
               >
-                <X size={20} />
+                Cancelar
+              </button>
+              <button
+                onClick={handleConfirmSale}
+                disabled={isProcessingSale || !paymentInfo.method}
+                className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+              >
+                {isProcessingSale ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Processando...
+                  </>
+                ) : (
+                  'Confirmar Venda'
+                )}
               </button>
             </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tipo
-                </label>
-                <select
-                  value={entryType}
-                  onChange={(e) => setEntryType(e.target.value as 'income' | 'expense')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="income">Entrada</option>
-                  <option value="expense">Saída</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Valor
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={entryAmount}
-                  onChange={(e) => setEntryAmount(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="0,00"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Descrição
-                </label>
-                <input
-                  type="text"
-                  value={entryDescription}
-                  onChange={(e) => setEntryDescription(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Descrição da movimentação"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Forma de Pagamento
-                </label>
-                <select
-                  value={entryPaymentMethod}
-                  onChange={(e) => setEntryPaymentMethod(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="dinheiro">Dinheiro</option>
-                  <option value="cartao_credito">Cartão de Crédito</option>
-                  <option value="cartao_debito">Cartão de Débito</option>
-                  <option value="pix">PIX</option>
-                </select>
-              </div>
-
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setShowCashEntry(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleCashEntry}
-                  disabled={!entryAmount || !entryDescription}
-                  className={`flex-1 ${entryType === 'income' ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'} disabled:bg-gray-300 text-white px-4 py-2 rounded-lg transition-colors`}
-                >
-                  Adicionar
-                </button>
-              </div>
-            </div>
           </div>
         </div>
-      )}
-      
-      {/* Print View Modal */}
-      {showPrintView && closedRegisterData && (
-        <Store2CashRegisterPrintView
-          register={closedRegisterData}
-          summary={summary}
-          entries={entries}
-          onClose={() => setShowPrintView(false)}
-        />
       )}
     </div>
   );
 };
 
-export default Store2CashRegisterMenu;
+export default PDVSalesScreen;
