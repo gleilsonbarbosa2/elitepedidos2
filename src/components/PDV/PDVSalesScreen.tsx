@@ -695,7 +695,7 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ operator, storeSettings
   );
 })}
 
-                    
+                    } 
                     <div className="relative h-32 bg-gradient-to-br from-green-50 to-blue-50">
                       
                       {productImages[product.id] || product.image_url ? (
