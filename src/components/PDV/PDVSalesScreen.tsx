@@ -869,92 +869,186 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ operator, storeSettings
 
       {/* Payment Modal */}
       {showPaymentModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full max-h-[80vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2">
+          <div className="bg-white rounded-xl max-w-sm w-full max-h-[95vh] flex flex-col">
+            <div className="p-4 border-b border-gray-200">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-gray-800">Forma de Pagamento</h2>
+                <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                  <CreditCard size={20} />
+                  Pagamento
+                </h2>
                 <button
                   onClick={() => setShowPaymentModal(false)}
                   className="text-gray-400 hover:text-gray-600 transition-colors"
                 >
-                  <X size={24} />
+                  <X size={20} />
                 </button>
               </div>
             </div>
 
-            <div className="p-4 space-y-4">
+            <div className="flex-1 overflow-y-auto p-4">
+              <div className="space-y-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Selecione a forma de pagamento:
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Forma de Pagamento *
                 </label>
-                <div className="grid grid-cols-1 gap-3">
-                  {[
-                    { id: 'dinheiro', label: 'Dinheiro', icon: '💵' },
-                    { id: 'pix', label: 'PIX', icon: '📱' },
-                    { id: 'cartao_credito', label: 'Cartão de Crédito', icon: '💳' },
-                    { id: 'cartao_debito', label: 'Cartão de Débito', icon: '💳' },
-                    { id: 'voucher', label: 'Voucher', icon: '🎫' },
-                    { id: 'misto', label: 'Pagamento Misto', icon: '🔄' }
-                  ].map((method) => (
-                    <label
-                      key={method.id}
-                      className={`flex items-center gap-3 p-3 border-2 rounded-lg cursor-pointer transition-all ${
-                        tempPaymentInfo.method === method.id
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-gray-200 hover:border-blue-200'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="payment"
-                        value={method.id}
-                        checked={tempPaymentInfo.method === method.id}
-                        onChange={(e) => setTempPaymentInfo(prev => ({ 
-                          ...prev, 
-                          method: e.target.value as any 
-                        }))}
-                        className="sr-only"
-                      />
-                      <div className="text-xl">{method.icon}</div>
-                      <div className="flex-1">
-                        <div className="font-medium text-gray-800 text-sm">{method.label}</div>
-                      </div>
-                      {tempPaymentInfo.method === method.id && (
-                        <div className="text-blue-600 text-sm">
-                          ✓
-                        </div>
-                      )}
-                    </label>
-                  ))}
+                <div className="grid grid-cols-1 gap-2">
+                  <label className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                    <input
+                      type="radio"
+                      name="payment"
+                      value="dinheiro"
+                      checked={tempPaymentInfo.method === 'dinheiro'}
+                      onChange={(e) => setTempPaymentInfo(prev => ({ ...prev, method: e.target.value as any }))}
+                      className="text-purple-600 h-4 w-4"
+                    />
+                    <div className="flex items-center gap-2 text-sm">
+                      <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                      </svg>
+                      <span className="font-medium text-sm">Dinheiro</span>
+                    </div>
+                  </label>
+                  
+                  <label className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                    <input
+                      type="radio"
+                      name="payment"
+                      value="pix"
+                      checked={tempPaymentInfo.method === 'pix'}
+                      onChange={(e) => setTempPaymentInfo(prev => ({ ...prev, method: e.target.value as any }))}
+                      className="text-purple-600 h-4 w-4"
+                    />
+                    <div className="flex items-center gap-2 text-sm">
+                      <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.94-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+                      </svg>
+                      <span className="font-medium text-sm">PIX</span>
+                    </div>
+                  </label>
+                  
+                  <label className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                    <input
+                      type="radio"
+                      name="payment"
+                      value="cartao_credito"
+                      checked={tempPaymentInfo.method === 'cartao_credito'}
+                      onChange={(e) => setTempPaymentInfo(prev => ({ ...prev, method: e.target.value as any }))}
+                      className="text-purple-600 h-4 w-4"
+                    />
+                    <div className="flex items-center gap-2 text-sm">
+                      <svg className="w-4 h-4 text-purple-600" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M20,8H4V6H20M20,18H4V12H20M20,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V6C22,4.89 21.11,4 20,4Z"/>
+                      </svg>
+                      <span className="font-medium text-sm">Cartão de Crédito</span>
+                    </div>
+                  </label>
+                  
+                  <label className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                    <input
+                      type="radio"
+                      name="payment"
+                      value="cartao_debito"
+                      checked={tempPaymentInfo.method === 'cartao_debito'}
+                      onChange={(e) => setTempPaymentInfo(prev => ({ ...prev, method: e.target.value as any }))}
+                      className="text-purple-600 h-4 w-4"
+                    />
+                    <div className="flex items-center gap-2 text-sm">
+                      <svg className="w-4 h-4 text-indigo-600" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M20,8H4V6H20M20,18H4V12H20M20,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V6C22,4.89 21.11,4 20,4Z"/>
+                      </svg>
+                      <span className="font-medium text-sm">Cartão de Débito</span>
+                    </div>
+                  </label>
+                  
+                  <label className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                    <input
+                      type="radio"
+                      name="payment"
+                      value="voucher"
+                      checked={tempPaymentInfo.method === 'voucher'}
+                      onChange={(e) => setTempPaymentInfo(prev => ({ ...prev, method: e.target.value as any }))}
+                      className="text-purple-600 h-4 w-4"
+                    />
+                    <div className="flex items-center gap-2 text-sm">
+                      <svg className="w-4 h-4 text-orange-600" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"/>
+                      </svg>
+                      <span className="font-medium text-sm">Voucher</span>
+                    </div>
+                  </label>
+                  
+                  <label className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                    <input
+                      type="radio"
+                      name="payment"
+                      value="misto"
+                      checked={tempPaymentInfo.method === 'misto'}
+                      onChange={(e) => setTempPaymentInfo(prev => ({ ...prev, method: e.target.value as any }))}
+                      className="text-purple-600 h-4 w-4"
+                    />
+                    <div className="flex items-center gap-2 text-sm">
+                      <svg className="w-4 h-4 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M12,6A6,6 0 0,0 6,12A6,6 0 0,0 12,18A6,6 0 0,0 18,12A6,6 0 0,0 12,6Z"/>
+                      </svg>
+                      <span className="font-medium text-sm">Pagamento Misto</span>
+                    </div>
+                  </label>
                 </div>
               </div>
 
-              {tempPaymentInfo.method === 'dinheiro' && (
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Valor Recebido (R$)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={tempPaymentInfo.changeFor || ''}
-                      onChange={(e) => setTempPaymentInfo(prev => ({ 
-                        ...prev, 
-                        changeFor: parseFloat(e.target.value) || 0 
-                      }))}
-                      className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="0,00"
-                    />
-                  </div>
+              {/* Customer Info */}
+              <div className="space-y-2">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Nome do Cliente (opcional)
+                  </label>
+                  <input
+                    type="text"
+                    value={tempPaymentInfo.customerName || ''}
+                    onChange={(e) => setTempPaymentInfo(prev => ({ ...prev, customerName: e.target.value }))}
+                    className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                    placeholder="Nome do cliente"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Telefone (opcional)
+                  </label>
+                  <input
+                    type="tel"
+                    value={tempPaymentInfo.customerPhone || ''}
+                    onChange={(e) => setTempPaymentInfo(prev => ({ ...prev, customerPhone: e.target.value }))}
+                    className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                    placeholder="(85) 99999-9999"
+                  />
+                </div>
+              </div>
 
-                  {tempPaymentInfo.changeFor && tempPaymentInfo.changeFor > getTotal() && (
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-2">
+              {/* Change For Money */}
+              {tempPaymentInfo.method === 'dinheiro' && (
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Valor Recebido *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min={getTotal()}
+                    value={tempPaymentInfo.changeFor || ''}
+                    onChange={(e) => setTempPaymentInfo(prev => ({ ...prev, changeFor: parseFloat(e.target.value) || undefined }))}
+                    className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                    placeholder={`Mínimo: ${formatPrice(getTotal())}`}
+                  />
+                  
+                  {tempPaymentInfo.changeFor && tempPaymentInfo.changeFor >= getTotal() && (
+                    <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg">
                       <div className="flex items-center gap-2">
-                        <div className="text-green-600 text-sm">💰</div>
-                        <div>
+                        <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                        </svg>
+                        <div className="text-sm">
                           <p className="font-medium text-green-800 text-sm">Troco a dar:</p>
                           <p className="text-lg font-bold text-green-600">
                             {formatPrice(tempPaymentInfo.changeFor - getTotal())}
@@ -965,83 +1059,23 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ operator, storeSettings
                   )}
                 </div>
               )}
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nome do Cliente (opcional)
-                  </label>
-                  <input
-                    type="text"
-                    value={tempPaymentInfo.customerName || ''}
-                    onChange={(e) => setTempPaymentInfo(prev => ({ 
-                      ...prev, 
-                      customerName: e.target.value 
-                    }))}
-                    className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Nome do cliente"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Telefone (opcional)
-                  </label>
-                  <input
-                    type="tel"
-                    value={tempPaymentInfo.customerPhone || ''}
-                    onChange={(e) => setTempPaymentInfo(prev => ({ 
-                      ...prev, 
-                      customerPhone: e.target.value 
-                    }))}
-                    className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="(85) 99999-9999"
-                  />
-                </div>
-              </div>
-
-              {/* Preview */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <h4 className="font-medium text-blue-800 mb-2">Resumo do Pagamento</h4>
-                <div className="space-y-1 text-sm">
-                  <div className="flex justify-between">
-                    <span>Total da venda:</span>
-                    <span className="font-medium">{formatPrice(getTotal())}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Forma de pagamento:</span>
-                    <span className="font-medium">{getPaymentMethodLabel(tempPaymentInfo.method)}</span>
-                  </div>
-                  {tempPaymentInfo.method === 'dinheiro' && tempPaymentInfo.changeFor && (
-                    <>
-                      <div className="flex justify-between">
-                        <span>Valor recebido:</span>
-                        <span className="font-medium">{formatPrice(tempPaymentInfo.changeFor)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Troco:</span>
-                        <span className="font-medium text-green-600">
-                          {formatPrice(Math.max(0, tempPaymentInfo.changeFor - getTotal()))}
-                        </span>
-                      </div>
-                    </>
-                  )}
-                </div>
               </div>
             </div>
 
-            <div className="p-4 border-t border-gray-200 flex justify-end gap-3">
+            <div className="p-3 border-t border-gray-200 flex gap-2">
               <button
                 onClick={() => setShowPaymentModal(false)}
-                className="px-3 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors text-sm"
+                className="flex-1 px-3 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors text-sm"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleConfirmPayment}
                 disabled={tempPaymentInfo.method === 'dinheiro' && (!tempPaymentInfo.changeFor || tempPaymentInfo.changeFor < getTotal())}
-                className="px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white rounded-lg transition-colors text-sm"
+                className="flex-1 px-3 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 text-white rounded-lg transition-colors flex items-center justify-center gap-2 text-sm"
               >
-                Confirmar Pagamento
+                <CreditCard size={16} />
+                Confirmar
               </button>
             </div>
           </div>
@@ -1050,140 +1084,123 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ operator, storeSettings
 
       {/* Split Modal */}
       {showSplitModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-sm w-full max-h-[80vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2">
+          <div className="bg-white rounded-xl max-w-xs w-full max-h-[90vh] flex flex-col">
+            <div className="p-4 border-b border-gray-200">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-gray-800">Dividir Conta</h2>
+                <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                  <Split size={20} />
+                  Dividir Conta
+                </h2>
                 <button
                   onClick={() => setShowSplitModal(false)}
                   className="text-gray-400 hover:text-gray-600 transition-colors"
                 >
-                  <X size={24} />
+                  <X size={20} />
                 </button>
               </div>
             </div>
 
-            <div className="p-4 space-y-4">
-              {/* Number of parts */}
+            <div className="flex-1 overflow-y-auto p-4">
+              <div className="space-y-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Dividir em quantas partes?
+                  Número de Pessoas
                 </label>
-                <div className="flex items-center gap-3 justify-center">
+                <div className="flex items-center gap-2 bg-gray-50 p-2 rounded-lg">
                   <button
+                    type="button"
                     onClick={() => {
                       const newParts = Math.max(2, tempSplitInfo.parts - 1);
-                      setTempSplitInfo(prev => ({
-                        ...prev,
-                        parts: newParts,
-                        amounts: Array(newParts).fill(getTotal() / newParts)
-                      }));
+                      updateTempSplitParts(newParts);
                     }}
-                    className="p-1 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+                    className="bg-white hover:bg-gray-100 border border-gray-300 rounded-full p-1 transition-colors"
                   >
-                    <Minus size={16} />
+                    <Minus size={14} />
                   </button>
-                  <span className="text-xl font-bold w-8 text-center">{tempSplitInfo.parts}</span>
+                  <span className="text-lg font-semibold w-8 text-center text-sm">{tempSplitInfo.parts}</span>
                   <button
+                    type="button"
                     onClick={() => {
                       const newParts = Math.min(10, tempSplitInfo.parts + 1);
-                      setTempSplitInfo(prev => ({
-                        ...prev,
-                        parts: newParts,
-                        amounts: Array(newParts).fill(getTotal() / newParts)
-                      }));
+                      updateTempSplitParts(newParts);
                     }}
-                    className="p-1 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+                    className="bg-white hover:bg-gray-100 border border-gray-300 rounded-full p-1 transition-colors"
                   >
-                    <Plus size={16} />
+                    <Plus size={14} />
                   </button>
                 </div>
               </div>
 
-              {/* Amount inputs */}
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-sm font-medium text-gray-700">
-                    Valor por pessoa:
+                    Valores por Pessoa
                   </label>
                   <button
-                    onClick={() => {
-                      const equalAmount = getTotal() / tempSplitInfo.parts;
-                      setTempSplitInfo(prev => ({
-                        ...prev,
-                        amounts: Array(tempSplitInfo.parts).fill(equalAmount)
-                      }));
-                    }}
-                    className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full hover:bg-purple-200 transition-colors"
+                    type="button"
+                    onClick={divideTempEqually}
+                    className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200 transition-colors"
                   >
                     Dividir Igualmente
                   </button>
                 </div>
-                <div className="space-y-2">
+                
+                <div className="space-y-1">
                   {tempSplitInfo.amounts.map((amount, index) => (
-                    <div key={index} className="flex items-center gap-3">
-                      <span className="text-sm font-medium text-gray-600 w-12">
-                        {index + 1}ª pessoa:
+                    <div key={index} className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-gray-600 w-12">
+                        Pessoa {index + 1}:
                       </span>
                       <input
                         type="number"
                         step="0.01"
                         min="0"
                         value={amount}
-                        onChange={(e) => {
-                          const newAmounts = [...tempSplitInfo.amounts];
-                          newAmounts[index] = parseFloat(e.target.value) || 0;
-                          setTempSplitInfo(prev => ({ ...prev, amounts: newAmounts }));
-                        }}
-                        className="flex-1 p-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        onChange={(e) => updateTempSplitAmount(index, parseFloat(e.target.value) || 0)}
+                        className="flex-1 p-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500 text-sm"
+                        placeholder="0.00"
                       />
                     </div>
                   ))}
                 </div>
+                
+                <div className="mt-2 p-2 bg-gray-50 rounded-lg">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-medium text-gray-700">Total:</span>
+                    <span className="font-bold text-sm">{formatPrice(getTempSplitTotal())}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-600">Esperado:</span>
+                    <span className="font-medium text-sm">{formatPrice(getTotal())}</span>
+                  </div>
+                  {Math.abs(getTempSplitTotal() - getTotal()) > 0.01 && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-red-600">Diferença:</span>
+                      <span className="font-medium text-red-600 text-sm">
+                        {formatPrice(Math.abs(getTempSplitTotal() - getTotal()))}
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
-
-              {/* Total validation */}
-              <div className={`p-3 rounded-lg border ${
-                Math.abs(tempSplitInfo.amounts.reduce((sum, amount) => sum + amount, 0) - getTotal()) < 0.01
-                  ? 'bg-green-50 border-green-200'
-                  : 'bg-red-50 border-red-200'
-              }`}>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium">Total da divisão:</span>
-                  <span className={`font-bold ${
-                    Math.abs(tempSplitInfo.amounts.reduce((sum, amount) => sum + amount, 0) - getTotal()) < 0.01
-                      ? 'text-green-600'
-                      : 'text-red-600'
-                  }`}>
-                    {formatPrice(tempSplitInfo.amounts.reduce((sum, amount) => sum + amount, 0))}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center mt-1">
-                  <span className="text-sm text-gray-600">Total da venda:</span>
-                  <span className="font-medium">{formatPrice(getTotal())}</span>
-                </div>
-                {Math.abs(tempSplitInfo.amounts.reduce((sum, amount) => sum + amount, 0) - getTotal()) >= 0.01 && (
-                  <p className="text-xs text-red-600 mt-1">
-                    ⚠️ A soma não confere com o total da venda
-                  </p>
-                )}
               </div>
             </div>
 
-            <div className="p-4 border-t border-gray-200 flex justify-end gap-3">
+            <div className="p-3 border-t border-gray-200 flex gap-2">
               <button
                 onClick={() => setShowSplitModal(false)}
-                className="px-3 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors text-sm"
+                className="flex-1 px-3 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors text-sm"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleConfirmSplit}
-                disabled={Math.abs(tempSplitInfo.amounts.reduce((sum, amount) => sum + amount, 0) - getTotal()) >= 0.01}
-                className="px-3 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 text-white rounded-lg transition-colors text-sm"
+                disabled={Math.abs(getTempSplitTotal() - getTotal()) > 0.01}
+                className="flex-1 px-3 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 text-white rounded-lg transition-colors flex items-center justify-center gap-2 text-sm"
               >
-                Confirmar Divisão
+                <Users size={16} />
+                Confirmar
               </button>
             </div>
           </div>
