@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import '../../index.css';
-import { Calculator, ShoppingCart, Printer, AlertCircle, Package, Scale, Plus, Minus, Trash2, Search, Percent, CreditCard, Split, DollarSign } from 'lucide-react';
+import { Calculator, ShoppingCart, Printer, AlertCircle, Package, Scale, Plus, Minus, Trash2, Search, Percent, CreditCard, Split, DollarSign, X } from 'lucide-react';
 import { PDVOperator } from '../../types/pdv';
 import { useStore2PDVCashRegister } from '../../hooks/useStore2PDVCashRegister';
 import { useStore2Products } from '../../hooks/useStore2Products';
@@ -846,33 +846,6 @@ const Store2PDVSalesScreen: React.FC<Store2PDVSalesScreenProps> = ({ operator, s
                   Aplicar Desconto
                 </button>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {/* Modal de pesagem */}
-      {showPesagemModal && selectedProduct && (
-        <PesagemModal
-          produto={selectedProduct}
-          onConfirmar={handleWeightConfirm}
-          onFechar={() => {
-            setShowPesagemModal(false);
-            setSelectedProduct(null);
-          }}
-        />
-      )}
-    </div>
-  );
-};
-
-export default Store2PDVSalesScreen;
-              <button
-                onClick={() => setDiscount({ type: 'none', value: 0 })}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium transition-colors"
-              >
-                Aplicar Desconto
-              </button>
             </div>
           </div>
         </div>
