@@ -50,6 +50,7 @@ const Store2PDVSalesScreen: React.FC<Store2PDVSalesScreenProps> = ({ operator, s
   const [splitAmounts, setSplitAmounts] = useState<number[]>([]);
   const [customerInfo, setCustomerInfo] = useState({ name: '', phone: '' });
   const [saleNotes, setSaleNotes] = useState('');
+  const [calculatedChange, setCalculatedChange] = useState(0);
   const { getProductImage } = useImageUpload();
   const [productImages, setProductImages] = useState<Record<string, string>>({});
 
@@ -101,6 +102,17 @@ const Store2PDVSalesScreen: React.FC<Store2PDVSalesScreenProps> = ({ operator, s
 
     loadProductImages();
   }, [filteredProducts, getProductImage]);
+
+  // Calculate change when payment method is money and changeFor is set
+  React.useEffect(() => {
+    if (paymentMethod === 'dinheiro' && changeFor) {
+      const total = getTotal();
+      const change = changeFor - total;
+      setCalculatedChange(change);
+    } else {
+      setCalculatedChange(0);
+    }
+  }, [changeFor, paymentMethod, getTotal]);
 
   const handleAddProduct = (product: any, quantity: number = 1) => {
     if (product.is_weighable) {
@@ -171,6 +183,8 @@ const Store2PDVSalesScreen: React.FC<Store2PDVSalesScreenProps> = ({ operator, s
       const sale = await createSale(saleData, saleItems, currentRegister?.id);
       setLastSale(sale);
       clearCart();
+      setShowPaymentModal(false);
+      setCalculatedChange(0);
       
       // Resetar estados após venda finalizada
       setPaymentMethod('dinheiro');
@@ -985,19 +999,60 @@ const Store2PDVSalesScreen: React.FC<Store2PDVSalesScreenProps> = ({ operator, s
                 
                 {/* Campos específicos por forma de pagamento */}
                 {paymentMethod === 'dinheiro' && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Troco para quanto?
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={changeFor || ''}
-                      onChange={(e) => setChangeFor(parseFloat(e.target.value) || 0)}
-                      className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                      placeholder="Valor para troco"
-                    />
-                  </div>
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Troco para quanto?
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={changeFor || ''}
+                        onChange={(e) => setChangeFor(parseFloat(e.target.value) || 0)}
+                        className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        placeholder="Valor para troco"
+                      />
+                    </div>
+                    
+                    {/* Mostrar troco calculado */}
+                    {paymentMethod === 'dinheiro' && changeFor && (
+                      <div className="mt-3">
+                        {calculatedChange >= 0 ? (
+                          <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                            <div className="flex items-center gap-2">
+                              <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                              </svg>
+                              <div>
+                                <p className="text-sm font-medium text-green-800">
+                                  💰 Troco a dar ao cliente:
+                                </p>
+                                <p className="text-lg font-bold text-green-600">
+                                  {formatPrice(calculatedChange)}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                            <div className="flex items-center gap-2">
+                              <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                              </svg>
+                              <div>
+                                <p className="text-sm font-medium text-red-800">
+                                  ⚠️ Valor insuficiente!
+                                </p>
+                                <p className="text-sm text-red-600">
+                                  Faltam {formatPrice(Math.abs(calculatedChange))}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </>
                 )}
                 
                 {paymentMethod === 'misto' && (
@@ -1100,12 +1155,18 @@ const Store2PDVSalesScreen: React.FC<Store2PDVSalesScreenProps> = ({ operator, s
               </button>
               <button
                 onClick={handleFinalizeSale}
-                disabled={items.length === 0 || salesLoading}
+                disabled={items.length === 0 || salesLoading || (paymentMethod === 'dinheiro' && changeFor && calculatedChange < 0)}
                 className="flex-1 px-3 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 text-white rounded-lg transition-colors flex items-center justify-center gap-2 text-sm"
               >
                 <CreditCard size={16} />
                 Confirmar
               </button>
+              
+              {paymentMethod === 'dinheiro' && changeFor && calculatedChange < 0 && (
+                <p className="text-xs text-red-600 text-center mt-2">
+                  ⚠️ Valor insuficiente para completar a venda
+                </p>
+              )}
             </div>
           </div>
         </div>
