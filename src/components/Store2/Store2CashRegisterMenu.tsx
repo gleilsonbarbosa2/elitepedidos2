@@ -7,6 +7,7 @@ import {
   ArrowDownCircle, 
   ArrowUpCircle, 
   Plus, 
+  Minus,
   ShoppingBag, 
   Clock, 
   RefreshCw,
