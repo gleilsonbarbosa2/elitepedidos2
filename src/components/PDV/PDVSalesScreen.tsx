@@ -758,11 +758,11 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ operator, storeSettings
                             <Plus size={14} />
                             Adicionar
                           </>
-                        )}
+                        )
                       </button>
                     </div>
                   </div>
-                )} 
+                ))} 
               </div>
             )}
           </div>
