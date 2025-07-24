@@ -455,6 +455,9 @@ const Store2CashRegisterMenu: React.FC = () => {
           {/* Histórico de Movimentações */}
           <div className="bg-white rounded-xl shadow-sm overflow-hidden">
             <div className="p-4 border-b border-gray-200">
+            </div>
+          </div>
+        </>
       )}
 
       {/* Open Register Modal */}
@@ -725,6 +728,7 @@ const Store2CashRegisterMenu: React.FC = () => {
           summary={summary}
           entries={entries}
           onClose={() => setShowPrintView(false)}
+        />
       )}
     </div>
   );
