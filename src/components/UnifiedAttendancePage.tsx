@@ -192,9 +192,9 @@ const UnifiedAttendancePage: React.FC<UnifiedAttendancePanelProps> = ({ operator
 
         {/* Content */}
         <div className="transition-all duration-300 print:hidden">
-          {activeTab === 'sales' && (isAdmin || hasPermission('can_view_sales')) && <PDVSalesScreen scaleHook={scaleHook || scale} storeSettings={settings} operator={operator} />}
+          {activeTab === 'sales' && (isAdmin || hasPermission('can_view_sales')) && <PDVSalesScreen operator={operator} scaleHook={scaleHook || scale} storeSettings={settings} />}
           {activeTab === 'orders' && (isAdmin || hasPermission('can_view_orders')) && <AttendantPanel storeSettings={settings} />}
-          {activeTab === 'cash' && (isAdmin || hasPermission('can_view_cash_register')) && <CashRegisterMenu storeSettings={settings} />}
+          {activeTab === 'cash' && (isAdmin || hasPermission('can_view_cash_register')) && <CashRegisterMenu />}
         </div>
       </div>
     </div>
