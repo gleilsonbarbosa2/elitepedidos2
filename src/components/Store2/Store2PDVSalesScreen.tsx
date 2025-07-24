@@ -745,6 +745,20 @@ const Store2PDVSalesScreen: React.FC<Store2PDVSalesScreenProps> = ({ operator, s
                   </div>
                 )}
                 
+                {paymentInfo.method && paymentInfo.method !== 'dinheiro' && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Pagamento:</span>
+                    <span className="font-medium text-blue-600">{getPaymentMethodLabel(paymentInfo.method)}</span>
+                  </div>
+                )}
+                
+                {splitInfo.enabled && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Dividido:</span>
+                    <span className="font-medium text-purple-600">{splitInfo.parts} partes</span>
+                  </div>
+                )}
+                
                 <div className="flex justify-between text-lg font-bold pt-2 border-t border-gray-200">
                   <span>Total:</span>
                   <span className="text-green-600">{formatPrice(getTotal())}</span>
@@ -835,9 +849,9 @@ const Store2PDVSalesScreen: React.FC<Store2PDVSalesScreenProps> = ({ operator, s
                   ].map(method => (
                     <button
                       key={method.id}
-                      onClick={() => setPaymentMethod(method.id as any)}
+                      onClick={() => setTempPaymentInfo(prev => ({ ...prev, method: method.id as any }))}
                       className={`p-3 rounded-lg border-2 transition-all text-left ${
-                        paymentMethod === method.id
+                        tempPaymentInfo.method === method.id
                           ? 'border-blue-500 bg-blue-50'
                           : 'border-gray-200 hover:border-gray-300'
                       }`}
@@ -851,18 +865,44 @@ const Store2PDVSalesScreen: React.FC<Store2PDVSalesScreenProps> = ({ operator, s
                 </div>
               </div>
 
-              {paymentMethod === 'dinheiro' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nome do Cliente (opcional)
+                </label>
+                <input
+                  type="text"
+                  value={tempPaymentInfo.customerName || ''}
+                  onChange={(e) => setTempPaymentInfo(prev => ({ ...prev, customerName: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Nome do cliente"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Telefone (opcional)
+                </label>
+                <input
+                  type="tel"
+                  value={tempPaymentInfo.customerPhone || ''}
+                  onChange={(e) => setTempPaymentInfo(prev => ({ ...prev, customerPhone: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="(85) 99999-9999"
+                />
+              </div>
+
+              {tempPaymentInfo.method === 'dinheiro' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Troco para quanto? (opcional)
+                    Valor recebido (opcional)
                   </label>
                   <div className="relative">
                     <input
                       type="number"
                       step="0.01"
                       min={getTotal()}
-                      value={changeFor || ''}
-                      onChange={(e) => setChangeFor(parseFloat(e.target.value) || 0)}
+                      value={tempPaymentInfo.changeFor || ''}
+                      onChange={(e) => setTempPaymentInfo(prev => ({ ...prev, changeFor: parseFloat(e.target.value) || 0 }))}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder={`Mínimo: ${formatPrice(getTotal())}`}
                     />
@@ -870,12 +910,12 @@ const Store2PDVSalesScreen: React.FC<Store2PDVSalesScreenProps> = ({ operator, s
                       R$
                     </span>
                   </div>
-                  {changeFor > 0 && changeFor >= getTotal() && (
+                  {tempPaymentInfo.changeFor && tempPaymentInfo.changeFor >= getTotal() && (
                     <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg">
                       <div className="flex justify-between text-sm">
                         <span className="text-green-700">Troco:</span>
                         <span className="font-bold text-green-800">
-                          {formatPrice(changeFor - getTotal())}
+                          {formatPrice(tempPaymentInfo.changeFor - getTotal())}
                         </span>
                       </div>
                     </div>
@@ -909,8 +949,14 @@ const Store2PDVSalesScreen: React.FC<Store2PDVSalesScreenProps> = ({ operator, s
                 </div>
                 <div className="flex justify-between text-sm">
                   <span>Forma de pagamento:</span>
-                  <span className="font-medium text-blue-700">{getPaymentMethodLabel(paymentMethod)}</span>
+                  <span className="font-medium text-blue-700">{getPaymentMethodLabel(tempPaymentInfo.method)}</span>
                 </div>
+                {tempPaymentInfo.customerName && (
+                  <div className="flex justify-between text-sm">
+                    <span>Cliente:</span>
+                    <span className="font-medium text-blue-700">{tempPaymentInfo.customerName}</span>
+                  </div>
+                )}
               </div>
               
               <div className="space-y-3">
@@ -936,11 +982,7 @@ const Store2PDVSalesScreen: React.FC<Store2PDVSalesScreenProps> = ({ operator, s
                   Cancelar
                 </button>
                 <button
-                  onClick={() => {
-                    handleClosePaymentModal();
-                  }}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium transition-colors"
-                >
+                  onClick={handleConfirmPayment}
                   Confirmar Pagamento
                 </button>
               </div>
@@ -971,24 +1013,30 @@ const Store2PDVSalesScreen: React.FC<Store2PDVSalesScreenProps> = ({ operator, s
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => {
-                      const newCount = Math.max(2, splitCount - 1);
-                      setSplitCount(newCount);
+                      const newCount = Math.max(2, tempSplitInfo.parts - 1);
                       const splitAmount = getTotal() / newCount;
-                      setSplitAmounts(Array(newCount).fill(splitAmount));
+                      setTempSplitInfo(prev => ({
+                        ...prev,
+                        parts: newCount,
+                        amounts: Array(newCount).fill(splitAmount)
+                      }));
                     }}
                     className="bg-gray-200 hover:bg-gray-300 rounded-full p-2 transition-colors"
                   >
                     <Minus size={16} />
                   </button>
                   <div className="flex-1 text-center text-lg font-bold">
-                    {splitCount} partes
+                    {tempSplitInfo.parts} partes
                   </div>
                   <button
                     onClick={() => {
-                      const newCount = Math.min(10, splitCount + 1);
-                      setSplitCount(newCount);
+                      const newCount = Math.min(10, tempSplitInfo.parts + 1);
                       const splitAmount = getTotal() / newCount;
-                      setSplitAmounts(Array(newCount).fill(splitAmount));
+                      setTempSplitInfo(prev => ({
+                        ...prev,
+                        parts: newCount,
+                        amounts: Array(newCount).fill(splitAmount)
+                      }));
                     }}
                     className="bg-gray-200 hover:bg-gray-300 rounded-full p-2 transition-colors"
                   >
@@ -1002,7 +1050,7 @@ const Store2PDVSalesScreen: React.FC<Store2PDVSalesScreenProps> = ({ operator, s
                   Valores por pessoa:
                 </label>
                 <div className="space-y-2 max-h-48 overflow-y-auto">
-                  {splitAmounts.map((amount, index) => (
+                  {tempSplitInfo.amounts.map((amount, index) => (
                     <div key={index} className="flex items-center gap-2">
                       <span className="text-sm font-medium text-gray-600 w-16">
                         Pessoa {index + 1}:
@@ -1055,8 +1103,11 @@ const Store2PDVSalesScreen: React.FC<Store2PDVSalesScreenProps> = ({ operator, s
                 <button
                   onClick={() => {
                     // Dividir igualmente
-                    const splitAmount = getTotal() / splitCount;
-                    setSplitAmounts(Array(splitCount).fill(splitAmount));
+                    const splitAmount = getTotal() / tempSplitInfo.parts;
+                    setTempSplitInfo(prev => ({
+                      ...prev,
+                      amounts: Array(tempSplitInfo.parts).fill(splitAmount)
+                    }));
                   }}
                   className="flex-1 px-4 py-2 border border-purple-300 text-purple-700 rounded-lg hover:bg-purple-50 transition-colors text-sm"
                 >
@@ -1069,11 +1120,7 @@ const Store2PDVSalesScreen: React.FC<Store2PDVSalesScreenProps> = ({ operator, s
                   Cancelar
                 </button>
               </div>
-
-              <button
-                onClick={() => {
-                  handleCloseSplitModal();
-                }}
+                onClick={handleConfirmSplit}
                 disabled={Math.abs(getSplitTotal() - getTotal()) >= 0.01}
                 className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 text-white py-2 rounded-lg font-medium transition-colors"
               >
