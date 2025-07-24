@@ -44,6 +44,8 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ operator, storeSettings
   const [changeFor, setChangeFor] = useState<number>(0);
   const [splitCount, setSplitCount] = useState<number>(2);
   const [splitAmounts, setSplitAmounts] = useState<number[]>([]);
+  const [customerInfo, setCustomerInfo] = useState({ name: '', phone: '' });
+  const [saleNotes, setSaleNotes] = useState('');
   const { getProductImage } = useImageUpload();
   const [productImages, setProductImages] = useState<Record<string, string>>({});
 
@@ -135,7 +137,7 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ operator, storeSettings
 
   const handleClosePaymentModal = () => {
     setShowPaymentModal(false);
-    setChangeFor(0);
+    // Não resetar valores para manter a seleção
   };
 
   const handleOpenSplitModal = () => {
@@ -147,8 +149,7 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ operator, storeSettings
 
   const handleCloseSplitModal = () => {
     setShowSplitModal(false);
-    setSplitCount(2);
-    setSplitAmounts([]);
+    // Não resetar valores para manter a configuração
   };
 
   const updateSplitAmount = (index: number, amount: number) => {
@@ -202,16 +203,23 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ operator, storeSettings
 
       const saleData = {
         operator_id: operator?.id,
-        customer_name: 'Cliente PDV',
-        customer_phone: '',
+        customer_name: customerInfo.name || 'Cliente PDV',
+        customer_phone: customerInfo.phone || '',
         subtotal: getSubtotal(),
         discount_amount: discountAmount,
         discount_percentage: discount.type === 'percentage' ? discount.value : 0,
         total_amount: getTotal(),
-        payment_type: 'dinheiro' as const,
-        payment_details: {},
-        change_amount: 0,
-        notes: 'Venda PDV',
+        payment_type: paymentMethod,
+        payment_details: {
+          method: paymentMethod,
+          change_for: paymentMethod === 'dinheiro' ? changeFor : undefined,
+          split_info: splitAmounts.length > 1 ? {
+            parts: splitCount,
+            amounts: splitAmounts
+          } : undefined
+        },
+        change_amount: paymentMethod === 'dinheiro' && changeFor > 0 ? changeFor - getTotal() : 0,
+        notes: saleNotes || `Venda PDV - ${getPaymentMethodLabel(paymentMethod)}`,
         is_cancelled: false,
         channel: 'pdv'
       };
@@ -231,6 +239,14 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ operator, storeSettings
       const sale = await createSale(saleData, saleItems, currentRegister?.id);
       setLastSale(sale);
       clearCart();
+      
+      // Resetar estados após venda finalizada
+      setPaymentMethod('dinheiro');
+      setChangeFor(0);
+      setSplitCount(2);
+      setSplitAmounts([]);
+      setCustomerInfo({ name: '', phone: '' });
+      setSaleNotes('');
       
       // Auto print
       setTimeout(() => {
@@ -854,12 +870,46 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ operator, storeSettings
 
               <div className="bg-blue-50 rounded-lg p-3">
                 <div className="flex justify-between text-sm mb-2">
+                  <span>Subtotal:</span>
+                  <span>{formatPrice(getTotal())}</span>
+                </div>
+                {paymentMethod === 'dinheiro' && changeFor > 0 && changeFor >= getTotal() && (
+                  <>
+                    <div className="flex justify-between text-sm mb-2">
+                      <span>Valor recebido:</span>
+                      <span className="font-medium">{formatPrice(changeFor)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm mb-2">
+                      <span>Troco:</span>
+                      <span className="font-bold text-green-600">{formatPrice(changeFor - getTotal())}</span>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div className="bg-gray-50 rounded-lg p-3">
+                <div className="flex justify-between text-sm mb-2">
                   <span>Total a pagar:</span>
                   <span className="font-bold text-blue-800">{formatPrice(getTotal())}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span>Forma de pagamento:</span>
                   <span className="font-medium text-blue-700">{getPaymentMethodLabel(paymentMethod)}</span>
+                </div>
+              </div>
+              
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Nome do Cliente (opcional)
+                  </label>
+                  <input
+                    type="text"
+                    value={customerInfo.name}
+                    onChange={(e) => setCustomerInfo(prev => ({ ...prev, name: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Nome do cliente"
+                  />
                 </div>
               </div>
 
@@ -872,10 +922,7 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ operator, storeSettings
                 </button>
                 <button
                   onClick={() => {
-                    // Aplicar forma de pagamento e fechar modal
                     handleClosePaymentModal();
-                    // Aqui você pode salvar a forma de pagamento escolhida
-                    console.log('Forma de pagamento selecionada:', paymentMethod);
                   }}
                   className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium transition-colors"
                 >
@@ -1010,10 +1057,7 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ operator, storeSettings
 
               <button
                 onClick={() => {
-                  // Processar divisão da conta
-                  console.log('Conta dividida:', splitAmounts);
                   handleCloseSplitModal();
-                  // Aqui você pode implementar a lógica para processar cada parte da conta
                 }}
                 disabled={Math.abs(getSplitTotal() - getTotal()) >= 0.01}
                 className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 text-white py-2 rounded-lg font-medium transition-colors"
