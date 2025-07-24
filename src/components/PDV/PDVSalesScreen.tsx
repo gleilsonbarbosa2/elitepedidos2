@@ -762,7 +762,7 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ operator, storeSettings
                       </button>
                     </div>
                   </div>
-                ))}
+          
               </div>
             )}
           </div>
