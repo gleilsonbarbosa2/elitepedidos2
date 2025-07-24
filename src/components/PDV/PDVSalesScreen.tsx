@@ -16,7 +16,7 @@ import {
   Printer
 } from 'lucide-react';
 import Store2CashRegisterPrintView from '../Store2/Store2CashRegisterPrintView';
-import Store2CashRegisterDetails from './Store2CashRegisterDetails';
+import Store2CashRegisterDetails from '../Store2/Store2CashRegisterDetails';
 
 const Store2CashRegisterMenu: React.FC = () => {
   const {
