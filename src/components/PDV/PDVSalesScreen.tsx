@@ -615,9 +615,89 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ operator, storeSettings
               </div>
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                {filteredProducts.map(product => (
-                     disabled={saving || (paymentInfo.method === 'dinheiro' && paymentInfo.changeFor && paymentInfo.changeFor < getTotal()) || (paymentInfo.method === 'misto' && Math.abs(splitInfo.amounts.reduce((sum, amount) => sum + (amount || 0), 0) - getTotal()) > 0.01)}
+                
+                {
+                 {filteredProducts.map(product => {
+  const isDisabled =
+    saving ||
+    (paymentInfo.method === 'dinheiro' && paymentInfo.changeFor && paymentInfo.changeFor < getTotal()) ||
+    (paymentInfo.method === 'misto' &&
+      Math.abs(splitInfo.amounts.reduce((sum, amount) => sum + (amount || 0), 0) - getTotal()) > 0.01);
+
+  return (
+    <div key={product.id} className="bg-white rounded-xl shadow hover:shadow-md transition overflow-hidden border border-gray-200">
+      <div className="relative h-32 bg-gradient-to-br from-green-50 to-blue-50">
+        {productImages[product.id] || product.image_url ? (
+          <img 
+            src={productImages[product.id] || product.image_url} 
+            alt={product.name}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <Package size={32} className="text-gray-400" />
+          </div>
+        )}
+
+        {product.stock_quantity <= product.min_stock && (
+          <div className="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+            Estoque baixo
+          </div>
+        )}
+
+        {product.is_weighable && (
+          <div className="absolute top-2 right-2 bg-green-500 text-white p-1 rounded-full">
+            <Scale size={12} />
+          </div>
+        )}
+      </div>
+
+      <div className="p-3">
+        <h3 className="font-medium text-gray-800 text-sm mb-1 line-clamp-2 min-h-[2.5rem]">
+          {product.name}
+        </h3>
+
+        <div className="text-xs text-gray-500 mb-2">
+          {product.code}
+        </div>
+
+        <div className="flex items-center justify-between mb-3">
+          <div className="text-lg font-bold text-green-600">
+            {product.is_weighable 
+              ? `${formatPrice((product.price_per_gram || 0) * 1000)}/kg`
+              : formatPrice(product.unit_price || 0)
+            }
+          </div>
+          <div className="text-xs text-gray-500">
+            Estoque: {product.stock_quantity}
+          </div>
+        </div>
+
+        <button
+          onClick={() => handleAddProduct(product)}
+          disabled={isDisabled}
+          className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {product.is_weighable ? (
+            <>
+              <Scale size={14} />
+              Pesar
+            </>
+          ) : (
+            <>
+              <Plus size={14} />
+              Adicionar
+            </>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+})}
+
+                    }
                     <div className="relative h-32 bg-gradient-to-br from-green-50 to-blue-50">
+                      
                       {productImages[product.id] || product.image_url ? (
                         <img 
                           src={productImages[product.id] || product.image_url} 
