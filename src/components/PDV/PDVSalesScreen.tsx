@@ -725,7 +725,6 @@ const Store2CashRegisterMenu: React.FC = () => {
           summary={summary}
           entries={entries}
           onClose={() => setShowPrintView(false)}
-       
       )}
     </div>
   );
