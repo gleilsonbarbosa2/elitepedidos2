@@ -22,7 +22,6 @@ export const useDeliveryOrders = () => {
       const { data, error } = await supabase
         .from('orders')
         .select('*')
-        .eq('status', 'confirmed')
         .gte('created_at', startOfDay.toISOString())
         .lte('created_at', endOfDay.toISOString())
         .order('created_at', { ascending: false });
@@ -51,7 +50,6 @@ export const useDeliveryOrders = () => {
           event: 'INSERT',
           schema: 'public',
           table: 'orders',
-          filter: 'status=eq.confirmed'
         },
         (payload) => {
           console.log('🔔 Novo pedido confirmado via realtime:', payload);
@@ -64,7 +62,6 @@ export const useDeliveryOrders = () => {
           event: 'UPDATE',
           schema: 'public',
           table: 'orders',
-          filter: 'status=eq.confirmed'
         },
         (payload) => {
           console.log('🔄 Pedido atualizado via realtime:', payload);

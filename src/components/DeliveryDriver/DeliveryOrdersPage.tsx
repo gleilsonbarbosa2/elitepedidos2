@@ -414,10 +414,10 @@ const DeliveryOrdersPage: React.FC = () => {
             <div className="bg-white rounded-xl shadow-sm p-6 sm:p-12 text-center">
               <Package size={48} className="mx-auto text-gray-300 mb-4" />
               <h3 className="text-base sm:text-lg font-medium text-gray-600 mb-2">
-                Nenhum pedido confirmado hoje
+                Todos os Pedidos de Hoje
               </h3>
               <p className="text-sm sm:text-base text-gray-500">
-                Aguardando pedidos confirmados para hoje ({new Date().toLocaleDateString('pt-BR')})...
+                {orders.length} pedido(s) de hoje ({new Date().toLocaleDateString('pt-BR')})
               </p>
               {autoRefresh && (
                 <div className="mt-4 flex items-center justify-center gap-2 text-sm text-green-600">
