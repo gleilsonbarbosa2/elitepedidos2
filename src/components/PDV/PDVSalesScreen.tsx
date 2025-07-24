@@ -742,7 +742,7 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ operator, storeSettings
                         <div className="text-xs text-gray-500">
                           Estoque: {product.stock_quantity}
                         </div>
-                      </div>
+                      </div> 
 
                       <button
                         onClick={() => handleAddProduct(product)}
@@ -758,7 +758,7 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ operator, storeSettings
                             <Plus size={14} />
                             Adicionar
                           </>
-                        )
+                        )}
                       </button>
                     </div>
                   </div>
