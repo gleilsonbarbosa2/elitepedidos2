@@ -131,7 +131,7 @@ const CashRegisterPrintView: React.FC<CashRegisterPrintViewProps> = ({
           <div class="small">Rua Dois, 2130-A</div>
           <div class="small">Residencial 1 - Cágado</div>
           <div class="small">Tel: (85) 98904-1010</div>
-          <div class="small">CNPJ: 00.000.000/0001-00</div>
+          <div class="small">CNPJ: 38.130.139/0001-22</div>
         </div>
         
         <!-- Dados do Caixa -->
@@ -650,7 +650,7 @@ const CashRegisterPrintView: React.FC<CashRegisterPrintViewProps> = ({
             <p style={{ margin: '2px 0' }}>Operador: Sistema</p>
             <p style={{ margin: '2px 0' }}>Impresso: {new Date().toLocaleString('pt-BR')}</p>
             <div style={{ marginTop: '15px', paddingTop: '10px', borderTop: '1px solid black' }}>
-              <p style={{ margin: '2px 0' }}>Elite Açaí - CNPJ: 00.000.000/0001-00</p>
+              <p style={{ margin: '2px 0' }}>Elite Açaí - CNPJ: 38.130.139/0001-22</p>
               <p style={{ margin: '2px 0' }}>Este é um relatório interno</p>
               <p style={{ margin: '2px 0' }}>Não é um documento fiscal</p>
             </div>

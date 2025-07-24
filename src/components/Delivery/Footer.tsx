@@ -70,7 +70,7 @@ const Footer: React.FC<FooterProps> = ({ storeSettings }) => {
               <div>
                 <p className="font-medium text-white mb-2">Central de Atendimento</p>
                 <p className="text-lg font-bold text-green-400">(85) 98904-1010</p>
-                <p className="text-sm text-gray-300">CNPJ: {storeSettings?.cnpj || '00.000.000/0001-00'}</p>
+                <p className="text-sm text-gray-300">CNPJ: {storeSettings?.cnpj || '38.130.139/0001-22'}</p>
                 <p className="text-sm">WhatsApp e Ligações</p>
               </div>
               
@@ -103,7 +103,7 @@ const Footer: React.FC<FooterProps> = ({ storeSettings }) => {
         
         <div className="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
           <p>&copy; 2024 Elite Açaí. Todos os direitos reservados.</p>
-          <p className="text-sm mt-1">CNPJ: {storeSettings?.cnpj || '00.000.000/0001-00'}</p>
+          <p className="text-sm mt-1">CNPJ: {storeSettings?.cnpj || '38.130.139/0001-22'}</p>
           <p className="text-sm mt-2">Delivery disponível nas duas lojas • Açaí fresquinho direto na sua casa</p>
         </div>
       </div>

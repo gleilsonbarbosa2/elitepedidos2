@@ -647,7 +647,7 @@ const Store2CashRegisterPrintView: React.FC<Store2CashRegisterPrintViewProps> = 
             <div style={{ marginTop: '15px', paddingTop: '10px', borderTop: '1px solid black' }}>
               <p style={{ margin: '2px 0' }}>Elite Açaí - Loja 2</p>
               <p style={{ margin: '2px 0' }}>Rua Dois, 2130-A – Residencial 1 – Cágado</p>
-              <p style={{ margin: '2px 0' }}>CNPJ: 00.000.000/0001-00</p>
+              <p style={{ margin: '2px 0' }}>CNPJ: 38.130.139/0001-22</p>
               <p style={{ margin: '2px 0' }}>Este é um relatório interno</p>
               <p style={{ margin: '2px 0' }}>Não é um documento fiscal</p>
             </div>

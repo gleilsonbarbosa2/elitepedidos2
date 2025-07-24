@@ -345,7 +345,7 @@ const PDVSettings: React.FC = () => {
                   value={localSettings.cnpj || ''}
                   onChange={(e) => setLocalSettings(prev => ({ ...prev, cnpj: e.target.value }))}
                   className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="00.000.000/0001-00"
+                  placeholder="38.130.139/0001-22"
                 />
               </div>
 
@@ -358,7 +358,7 @@ const PDVSettings: React.FC = () => {
                   value={localSettings.address}
                   onChange={(e) => setLocalSettings(prev => ({ ...prev, address: e.target.value }))}
                   className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Endereço completo da loja"
+                  placeholder="Rua Dois, 2130-A – Residencial 1 – Cágado"
                 />
               </div>
 
