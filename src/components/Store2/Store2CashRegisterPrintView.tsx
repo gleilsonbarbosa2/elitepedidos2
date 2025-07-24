@@ -499,7 +499,7 @@ const Store2CashRegisterPrintView: React.FC<Store2CashRegisterPrintViewProps> = 
                 <div className="mt-2 pt-2 border-t border-gray-300">
                   <p>Elite Açaí - Loja 2</p>
                   <p>Rua Dois, 2130-A – Residencial 1 – Cágado</p>
-                  <p>CNPJ: 00.000.000/0001-00</p>
+                  <p>CNPJ: 38.130.139/0001-22</p>
                   <p>Este é um relatório interno</p>
                   <p>Não é um documento fiscal</p>
                 </div>
