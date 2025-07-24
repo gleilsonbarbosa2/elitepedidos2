@@ -37,6 +37,8 @@ const Store2PDVSalesScreen: React.FC<Store2PDVSalesScreenProps> = ({ operator, s
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [showPesagemModal, setShowPesagemModal] = useState(false);
   const [lastSale, setLastSale] = useState<any>(null);
+  const [showDiscountModal, setShowDiscountModal] = useState(false);
+  const [tempDiscount, setTempDiscount] = useState({ type: 'none' as 'none' | 'percentage' | 'amount', value: 0 });
   const { getProductImage } = useImageUpload();
   const [productImages, setProductImages] = useState<Record<string, string>>({});
 
@@ -160,6 +162,30 @@ const Store2PDVSalesScreen: React.FC<Store2PDVSalesScreenProps> = ({ operator, s
       console.error('Erro ao finalizar venda:', error);
       showErrorNotification('Erro ao finalizar venda');
     }
+  };
+
+  const handleOpenDiscountModal = () => {
+    setTempDiscount(discount);
+    setShowDiscountModal(true);
+  };
+
+  const handleApplyDiscount = () => {
+    setDiscount(tempDiscount);
+    setShowDiscountModal(false);
+  };
+
+  const handleCancelDiscount = () => {
+    setTempDiscount({ type: 'none', value: 0 });
+    setShowDiscountModal(false);
+  };
+
+  const getTempDiscountAmount = () => {
+    if (tempDiscount.type === 'percentage') {
+      return getSubtotal() * (tempDiscount.value / 100);
+    } else if (tempDiscount.type === 'amount') {
+      return Math.min(tempDiscount.value, getSubtotal());
+    }
+    return 0;
   };
 
   const showSuccessNotification = () => {
@@ -662,12 +688,9 @@ const Store2PDVSalesScreen: React.FC<Store2PDVSalesScreenProps> = ({ operator, s
               {/* Botões de ação */}
               <div className="grid grid-cols-2 gap-2">
                 <button
-                  onClick={() => setDiscount(prev => ({ 
-                    type: prev.type === 'percentage' ? 'none' : 'percentage', 
-                    value: prev.type === 'percentage' ? 0 : 10 
-                  }))}
+                  onClick={handleOpenDiscountModal}
                   className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
-                    discount.type === 'percentage'
+                    discount.type !== 'none'
                       ? 'bg-orange-600 text-white'
                       : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
                   }`}
@@ -715,16 +738,16 @@ const Store2PDVSalesScreen: React.FC<Store2PDVSalesScreenProps> = ({ operator, s
       </div>
 
       {/* Modal de desconto */}
-      {discount.type === 'percentage' && (
+      {showDiscountModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl max-w-md w-full p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-800">Aplicar Desconto</h3>
               <button
-                onClick={() => setDiscount({ type: 'none', value: 0 })}
+                onClick={handleCancelDiscount}
                 className="text-gray-400 hover:text-gray-600"
               >
-                <Trash2 size={20} />
+                <X size={20} />
               </button>
             </div>
 
@@ -733,11 +756,21 @@ const Store2PDVSalesScreen: React.FC<Store2PDVSalesScreenProps> = ({ operator, s
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Tipo de Desconto
                 </label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   <button
-                    onClick={() => setDiscount({ type: 'percentage', value: discount.value })}
+                    onClick={() => setTempDiscount({ type: 'none', value: 0 })}
                     className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      discount.type === 'percentage'
+                      tempDiscount.type === 'none'
+                        ? 'bg-gray-600 text-white'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                  >
+                    Sem Desconto
+                  </button>
+                  <button
+                    onClick={() => setTempDiscount({ type: 'percentage', value: tempDiscount.value })}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      tempDiscount.type === 'percentage'
                         ? 'bg-blue-600 text-white'
                         : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                     }`}
@@ -745,9 +778,9 @@ const Store2PDVSalesScreen: React.FC<Store2PDVSalesScreenProps> = ({ operator, s
                     Percentual (%)
                   </button>
                   <button
-                    onClick={() => setDiscount({ type: 'amount', value: 0 })}
+                    onClick={() => setTempDiscount({ type: 'amount', value: 0 })}
                     className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      discount.type === 'amount'
+                      tempDiscount.type === 'amount'
                         ? 'bg-blue-600 text-white'
                         : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                     }`}
@@ -757,42 +790,83 @@ const Store2PDVSalesScreen: React.FC<Store2PDVSalesScreenProps> = ({ operator, s
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {discount.type === 'percentage' ? 'Percentual de Desconto' : 'Valor do Desconto'}
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    step={discount.type === 'percentage' ? '1' : '0.01'}
-                    min="0"
-                    max={discount.type === 'percentage' ? '100' : getSubtotal()}
-                    value={discount.value}
-                    onChange={(e) => setDiscount(prev => ({ ...prev, value: parseFloat(e.target.value) || 0 }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="0"
-                  />
-                  <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">
-                    {discount.type === 'percentage' ? '%' : 'R$'}
-                  </span>
+              {tempDiscount.type !== 'none' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {tempDiscount.type === 'percentage' ? 'Percentual de Desconto' : 'Valor do Desconto'}
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      step={tempDiscount.type === 'percentage' ? '1' : '0.01'}
+                      min="0"
+                      max={tempDiscount.type === 'percentage' ? '100' : getSubtotal()}
+                      value={tempDiscount.value}
+                      onChange={(e) => setTempDiscount(prev => ({ ...prev, value: parseFloat(e.target.value) || 0 }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="0"
+                    />
+                    <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                      {tempDiscount.type === 'percentage' ? '%' : 'R$'}
+                    </span>
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="bg-blue-50 rounded-lg p-3">
                 <div className="flex justify-between text-sm">
                   <span>Subtotal:</span>
                   <span>{formatPrice(getSubtotal())}</span>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span>Desconto:</span>
-                  <span className="text-red-600">-{formatPrice(getDiscountAmount())}</span>
-                </div>
+                {tempDiscount.type !== 'none' && tempDiscount.value > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span>Desconto:</span>
+                    <span className="text-red-600">-{formatPrice(getTempDiscountAmount())}</span>
+                  </div>
+                )}
                 <div className="flex justify-between font-bold pt-2 border-t border-blue-200 mt-2">
                   <span>Total:</span>
-                  <span className="text-green-600">{formatPrice(getTotal())}</span>
+                  <span className="text-green-600">
+                    {formatPrice(Math.max(0, getSubtotal() - getTempDiscountAmount()))}
+                  </span>
                 </div>
               </div>
 
+              <div className="flex gap-2">
+                <button
+                  onClick={handleCancelDiscount}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleApplyDiscount}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium transition-colors"
+                >
+                  Aplicar Desconto
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Modal de pesagem */}
+      {showPesagemModal && selectedProduct && (
+        <PesagemModal
+          produto={selectedProduct}
+          onConfirmar={handleWeightConfirm}
+          onFechar={() => {
+            setShowPesagemModal(false);
+            setSelectedProduct(null);
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+export default Store2PDVSalesScreen;
               <button
                 onClick={() => setDiscount({ type: 'none', value: 0 })}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium transition-colors"
