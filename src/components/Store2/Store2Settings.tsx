@@ -308,7 +308,7 @@ const Store2Settings: React.FC = () => {
                 value={localSettings.address}
                 onChange={(e) => setLocalSettings(prev => ({ ...prev, address: e.target.value }))}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Endereço completo da loja"
+                placeholder="Rua Dois, 2130-A – Residencial 1 – Cágado"
               />
             </div>
 

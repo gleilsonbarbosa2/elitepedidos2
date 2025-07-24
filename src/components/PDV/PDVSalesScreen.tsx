@@ -143,8 +143,26 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ operator, storeSettings
   };
 
   const handleConfirmPayment = () => {
+    console.log('💳 Confirmando pagamento:', tempPaymentInfo);
     updatePaymentInfo(tempPaymentInfo);
     setShowPaymentModal(false);
+    
+    // Mostrar feedback visual
+    const successMessage = document.createElement('div');
+    successMessage.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 flex items-center gap-2';
+    successMessage.innerHTML = `
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+      </svg>
+      Forma de pagamento definida: ${getPaymentMethodLabel(tempPaymentInfo.method)}
+    `;
+    document.body.appendChild(successMessage);
+    
+    setTimeout(() => {
+      if (document.body.contains(successMessage)) {
+        document.body.removeChild(successMessage);
+      }
+    }, 3000);
   };
 
   const handleOpenSplitModal = () => {
@@ -162,12 +180,26 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ operator, storeSettings
   };
 
   const handleConfirmSplit = () => {
-    updateSplitInfo({
-      enabled: true,
-      parts: tempSplitInfo.parts,
-      amounts: tempSplitInfo.amounts
-    });
+    console.log('🔄 Confirmando divisão:', tempSplitInfo);
+    updateSplitInfo(tempSplitInfo);
     setShowSplitModal(false);
+    
+    // Mostrar feedback visual
+    const successMessage = document.createElement('div');
+    successMessage.className = 'fixed top-4 right-4 bg-purple-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 flex items-center gap-2';
+    successMessage.innerHTML = `
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+      </svg>
+      Conta dividida em ${tempSplitInfo.parts} partes
+    `;
+    document.body.appendChild(successMessage);
+    
+    setTimeout(() => {
+      if (document.body.contains(successMessage)) {
+        document.body.removeChild(successMessage);
+      }
+    }, 3000);
   };
 
   const updateSplitAmount = (index: number, amount: number) => {
@@ -835,299 +867,321 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ operator, storeSettings
         </div>
       </div>
 
-      {/* Modal de pagamento */}
+      {/* Payment Modal */}
       {showPaymentModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-800">Forma de Pagamento</h3>
-              <button
-                onClick={handleClosePaymentModal}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X size={20} />
-              </button>
+          <div className="bg-white rounded-2xl max-w-md w-full max-h-[80vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-gray-800">Forma de Pagamento</h2>
+                <button
+                  onClick={() => setShowPaymentModal(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X size={24} />
+                </button>
+              </div>
             </div>
 
-            <div className="space-y-4">
+            <div className="p-4 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-3">
                   Selecione a forma de pagamento:
                 </label>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3">
                   {[
                     { id: 'dinheiro', label: 'Dinheiro', icon: '💵' },
                     { id: 'pix', label: 'PIX', icon: '📱' },
-                    { id: 'cartao_credito', label: 'Cartão Crédito', icon: '💳' },
-                    { id: 'cartao_debito', label: 'Cartão Débito', icon: '💳' },
+                    { id: 'cartao_credito', label: 'Cartão de Crédito', icon: '💳' },
+                    { id: 'cartao_debito', label: 'Cartão de Débito', icon: '💳' },
                     { id: 'voucher', label: 'Voucher', icon: '🎫' },
-                    { id: 'misto', label: 'Misto', icon: '🔄' }
-                  ].map(method => (
-                    <button
+                    { id: 'misto', label: 'Pagamento Misto', icon: '🔄' }
+                  ].map((method) => (
+                    <label
                       key={method.id}
-                      onClick={() => setTempPaymentInfo(prev => ({ ...prev, method: method.id as any }))}
-                      className={`p-3 rounded-lg border-2 transition-all text-left ${
+                      className={`flex items-center gap-3 p-3 border-2 rounded-lg cursor-pointer transition-all ${
                         tempPaymentInfo.method === method.id
                           ? 'border-blue-500 bg-blue-50'
-                          : 'border-gray-200 hover:border-gray-300'
+                          : 'border-gray-200 hover:border-blue-200'
                       }`}
                     >
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg">{method.icon}</span>
-                        <span className="font-medium text-sm">{method.label}</span>
+                      <input
+                        type="radio"
+                        name="payment"
+                        value={method.id}
+                        checked={tempPaymentInfo.method === method.id}
+                        onChange={(e) => setTempPaymentInfo(prev => ({ 
+                          ...prev, 
+                          method: e.target.value as any 
+                        }))}
+                        className="sr-only"
+                      />
+                      <div className="text-xl">{method.icon}</div>
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-800 text-sm">{method.label}</div>
                       </div>
-                    </button>
+                      {tempPaymentInfo.method === method.id && (
+                        <div className="text-blue-600 text-sm">
+                          ✓
+                        </div>
+                      )}
+                    </label>
                   ))}
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nome do Cliente (opcional)
-                </label>
-                <input
-                  type="text"
-                  value={tempPaymentInfo.customerName || ''}
-                  onChange={(e) => setTempPaymentInfo(prev => ({ ...prev, customerName: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Nome do cliente"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Telefone (opcional)
-                </label>
-                <input
-                  type="tel"
-                  value={tempPaymentInfo.customerPhone || ''}
-                  onChange={(e) => setTempPaymentInfo(prev => ({ ...prev, customerPhone: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="(85) 99999-9999"
-                />
-              </div>
-
               {tempPaymentInfo.method === 'dinheiro' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Valor recebido (opcional)
-                  </label>
-                  <div className="relative">
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Valor Recebido (R$)
+                    </label>
                     <input
                       type="number"
                       step="0.01"
-                      min={getTotal()}
+                      min="0"
                       value={tempPaymentInfo.changeFor || ''}
-                      onChange={(e) => setTempPaymentInfo(prev => ({ ...prev, changeFor: parseFloat(e.target.value) || 0 }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder={`Mínimo: ${formatPrice(getTotal())}`}
+                      onChange={(e) => setTempPaymentInfo(prev => ({ 
+                        ...prev, 
+                        changeFor: parseFloat(e.target.value) || 0 
+                      }))}
+                      className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="0,00"
                     />
-                    <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">
-                      R$
-                    </span>
                   </div>
-                  {tempPaymentInfo.changeFor && tempPaymentInfo.changeFor >= getTotal() && (
-                    <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-green-700">Troco:</span>
-                        <span className="font-bold text-green-800">
-                          {formatPrice(tempPaymentInfo.changeFor - getTotal())}
-                        </span>
+
+                  {tempPaymentInfo.changeFor && tempPaymentInfo.changeFor > getTotal() && (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-2">
+                      <div className="flex items-center gap-2">
+                        <div className="text-green-600 text-sm">💰</div>
+                        <div>
+                          <p className="font-medium text-green-800 text-sm">Troco a dar:</p>
+                          <p className="text-lg font-bold text-green-600">
+                            {formatPrice(tempPaymentInfo.changeFor - getTotal())}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   )}
                 </div>
               )}
 
-              <div className="bg-blue-50 rounded-lg p-3">
-                <div className="flex justify-between text-sm mb-2">
-                  <span>Subtotal:</span>
-                  <span>{formatPrice(getTotal())}</span>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Nome do Cliente (opcional)
+                  </label>
+                  <input
+                    type="text"
+                    value={tempPaymentInfo.customerName || ''}
+                    onChange={(e) => setTempPaymentInfo(prev => ({ 
+                      ...prev, 
+                      customerName: e.target.value 
+                    }))}
+                    className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Nome do cliente"
+                  />
                 </div>
-                {tempPaymentInfo.method === 'dinheiro' && tempPaymentInfo.changeFor && tempPaymentInfo.changeFor >= getTotal() && (
-                  <>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span>Valor recebido:</span>
-                      <span className="font-medium">{formatPrice(tempPaymentInfo.changeFor)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span>Troco:</span>
-                      <span className="font-bold text-green-600">{formatPrice(tempPaymentInfo.changeFor - getTotal())}</span>
-                    </div>
-                  </>
-                )}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Telefone (opcional)
+                  </label>
+                  <input
+                    type="tel"
+                    value={tempPaymentInfo.customerPhone || ''}
+                    onChange={(e) => setTempPaymentInfo(prev => ({ 
+                      ...prev, 
+                      customerPhone: e.target.value 
+                    }))}
+                    className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="(85) 99999-9999"
+                  />
+                </div>
               </div>
 
-              <div className="bg-gray-50 rounded-lg p-3">
-                <div className="flex justify-between text-sm mb-2">
-                  <span>Total a pagar:</span>
-                  <span className="font-bold text-blue-800">{formatPrice(getTotal())}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>Forma de pagamento:</span>
-                  <span className="font-medium text-blue-700">{getPaymentMethodLabel(tempPaymentInfo.method)}</span>
-                </div>
-                {tempPaymentInfo.customerName && (
-                  <div className="flex justify-between text-sm">
-                    <span>Cliente:</span>
-                    <span className="font-medium text-blue-700">{tempPaymentInfo.customerName}</span>
+              {/* Preview */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <h4 className="font-medium text-blue-800 mb-2">Resumo do Pagamento</h4>
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span>Total da venda:</span>
+                    <span className="font-medium">{formatPrice(getTotal())}</span>
                   </div>
-                )}
+                  <div className="flex justify-between">
+                    <span>Forma de pagamento:</span>
+                    <span className="font-medium">{getPaymentMethodLabel(tempPaymentInfo.method)}</span>
+                  </div>
+                  {tempPaymentInfo.method === 'dinheiro' && tempPaymentInfo.changeFor && (
+                    <>
+                      <div className="flex justify-between">
+                        <span>Valor recebido:</span>
+                        <span className="font-medium">{formatPrice(tempPaymentInfo.changeFor)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Troco:</span>
+                        <span className="font-medium text-green-600">
+                          {formatPrice(Math.max(0, tempPaymentInfo.changeFor - getTotal()))}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
+            </div>
 
-              <div className="flex gap-2">
-                <button
-                  onClick={handleClosePaymentModal}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleConfirmPayment}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium transition-colors"
-                >
-                  Confirmar Pagamento
-                </button>
-              </div>
+            <div className="p-4 border-t border-gray-200 flex justify-end gap-3">
+              <button
+                onClick={() => setShowPaymentModal(false)}
+                className="px-3 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors text-sm"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleConfirmPayment}
+                disabled={tempPaymentInfo.method === 'dinheiro' && (!tempPaymentInfo.changeFor || tempPaymentInfo.changeFor < getTotal())}
+                className="px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white rounded-lg transition-colors text-sm"
+              >
+                Confirmar Pagamento
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Modal de dividir conta */}
+      {/* Split Modal */}
       {showSplitModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-800">Dividir Conta</h3>
-              <button
-                onClick={handleCloseSplitModal}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X size={20} />
-              </button>
+          <div className="bg-white rounded-2xl max-w-sm w-full max-h-[80vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-gray-800">Dividir Conta</h2>
+                <button
+                  onClick={() => setShowSplitModal(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X size={24} />
+                </button>
+              </div>
             </div>
 
-            <div className="space-y-4">
+            <div className="p-4 space-y-4">
+              {/* Number of parts */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Dividir em quantas partes?
                 </label>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3 justify-center">
                   <button
                     onClick={() => {
-                      const newCount = Math.max(2, tempSplitInfo.parts - 1);
-                      const splitAmount = getTotal() / newCount;
+                      const newParts = Math.max(2, tempSplitInfo.parts - 1);
                       setTempSplitInfo(prev => ({
                         ...prev,
-                        parts: newCount,
-                        amounts: Array(newCount).fill(splitAmount)
+                        parts: newParts,
+                        amounts: Array(newParts).fill(getTotal() / newParts)
                       }));
                     }}
-                    className="bg-gray-200 hover:bg-gray-300 rounded-full p-2 transition-colors"
+                    className="p-1 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
                   >
                     <Minus size={16} />
                   </button>
-                  <div className="flex-1 text-center text-lg font-bold">
-                    {tempSplitInfo.parts} partes
-                  </div>
+                  <span className="text-xl font-bold w-8 text-center">{tempSplitInfo.parts}</span>
                   <button
                     onClick={() => {
-                      const newCount = Math.min(10, tempSplitInfo.parts + 1);
-                      const splitAmount = getTotal() / newCount;
+                      const newParts = Math.min(10, tempSplitInfo.parts + 1);
                       setTempSplitInfo(prev => ({
                         ...prev,
-                        parts: newCount,
-                        amounts: Array(newCount).fill(splitAmount)
+                        parts: newParts,
+                        amounts: Array(newParts).fill(getTotal() / newParts)
                       }));
                     }}
-                    className="bg-gray-200 hover:bg-gray-300 rounded-full p-2 transition-colors"
+                    className="p-1 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
                   >
                     <Plus size={16} />
                   </button>
                 </div>
               </div>
 
+              {/* Amount inputs */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Valores por pessoa:
-                </label>
-                <div className="space-y-2 max-h-48 overflow-y-auto">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-medium text-gray-700">
+                    Valor por pessoa:
+                  </label>
+                  <button
+                    onClick={() => {
+                      const equalAmount = getTotal() / tempSplitInfo.parts;
+                      setTempSplitInfo(prev => ({
+                        ...prev,
+                        amounts: Array(tempSplitInfo.parts).fill(equalAmount)
+                      }));
+                    }}
+                    className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full hover:bg-purple-200 transition-colors"
+                  >
+                    Dividir Igualmente
+                  </button>
+                </div>
+                <div className="space-y-2">
                   {tempSplitInfo.amounts.map((amount, index) => (
-                    <div key={index} className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-gray-600 w-16">
-                        Pessoa {index + 1}:
+                    <div key={index} className="flex items-center gap-3">
+                      <span className="text-sm font-medium text-gray-600 w-12">
+                        {index + 1}ª pessoa:
                       </span>
-                      <div className="relative flex-1">
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          value={amount.toFixed(2)}
-                          onChange={(e) => updateSplitAmount(index, parseFloat(e.target.value) || 0)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
-                        />
-                        <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-xs">
-                          R$
-                        </span>
-                      </div>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={amount}
+                        onChange={(e) => {
+                          const newAmounts = [...tempSplitInfo.amounts];
+                          newAmounts[index] = parseFloat(e.target.value) || 0;
+                          setTempSplitInfo(prev => ({ ...prev, amounts: newAmounts }));
+                        }}
+                        className="flex-1 p-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      />
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="bg-purple-50 rounded-lg p-3">
-                <div className="flex justify-between text-sm mb-1">
-                  <span>Total original:</span>
-                  <span className="font-medium">{formatPrice(getTotal())}</span>
-                </div>
-                <div className="flex justify-between text-sm mb-1">
-                  <span>Total dividido:</span>
-                  <span className="font-medium">{formatPrice(getSplitTotal())}</span>
-                </div>
-                <div className="flex justify-between text-sm pt-2 border-t border-purple-200">
-                  <span>Diferença:</span>
+              {/* Total validation */}
+              <div className={`p-3 rounded-lg border ${
+                Math.abs(tempSplitInfo.amounts.reduce((sum, amount) => sum + amount, 0) - getTotal()) < 0.01
+                  ? 'bg-green-50 border-green-200'
+                  : 'bg-red-50 border-red-200'
+              }`}>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium">Total da divisão:</span>
                   <span className={`font-bold ${
-                    Math.abs(getSplitTotal() - getTotal()) < 0.01 
-                      ? 'text-green-600' 
+                    Math.abs(tempSplitInfo.amounts.reduce((sum, amount) => sum + amount, 0) - getTotal()) < 0.01
+                      ? 'text-green-600'
                       : 'text-red-600'
                   }`}>
-                    {formatPrice(getSplitTotal() - getTotal())}
+                    {formatPrice(tempSplitInfo.amounts.reduce((sum, amount) => sum + amount, 0))}
                   </span>
                 </div>
-                {Math.abs(getSplitTotal() - getTotal()) >= 0.01 && (
+                <div className="flex justify-between items-center mt-1">
+                  <span className="text-sm text-gray-600">Total da venda:</span>
+                  <span className="font-medium">{formatPrice(getTotal())}</span>
+                </div>
+                {Math.abs(tempSplitInfo.amounts.reduce((sum, amount) => sum + amount, 0) - getTotal()) >= 0.01 && (
                   <p className="text-xs text-red-600 mt-1">
-                    ⚠️ A soma não confere com o total original
+                    ⚠️ A soma não confere com o total da venda
                   </p>
                 )}
               </div>
+            </div>
 
-              <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    // Dividir igualmente
-                    const splitAmount = getTotal() / tempSplitInfo.parts;
-                    setTempSplitInfo(prev => ({
-                      ...prev,
-                      amounts: Array(tempSplitInfo.parts).fill(splitAmount)
-                    }));
-                  }}
-                  className="flex-1 px-4 py-2 border border-purple-300 text-purple-700 rounded-lg hover:bg-purple-50 transition-colors text-sm"
-                >
-                  Dividir Igualmente
-                </button>
-                <button
-                  onClick={handleCloseSplitModal}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm"
-                >
-                  Cancelar
-                </button>
-              </div>
-
+            <div className="p-4 border-t border-gray-200 flex justify-end gap-3">
+              <button
+                onClick={() => setShowSplitModal(false)}
+                className="px-3 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors text-sm"
+              >
+                Cancelar
+              </button>
               <button
                 onClick={handleConfirmSplit}
-                disabled={Math.abs(getSplitTotal() - getTotal()) >= 0.01}
-                className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 text-white py-2 rounded-lg font-medium transition-colors"
+                disabled={Math.abs(tempSplitInfo.amounts.reduce((sum, amount) => sum + amount, 0) - getTotal()) >= 0.01}
+                className="px-3 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 text-white rounded-lg transition-colors text-sm"
               >
                 Confirmar Divisão
               </button>
