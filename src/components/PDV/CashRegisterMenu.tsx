@@ -370,14 +370,6 @@ const CashRegisterMenu: React.FC = () => {
               <ArrowUpCircle size={18} />
               Adicionar Saída
             </button>
-
-            <button
-              onClick={() => window.location.href = '/pdv/app?screen=daily_cash_report'}
-              className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors"
-            >
-              <FileText size={18} />
-              Relatório Diário
-            </button>
           </>
         )}
       </div>
