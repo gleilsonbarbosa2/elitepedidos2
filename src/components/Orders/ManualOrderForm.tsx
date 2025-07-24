@@ -15,7 +15,8 @@ import {
   Save,
   ShoppingBag,
   Search,
-  X
+  X,
+  AlertCircle
 } from 'lucide-react';
 
 interface ManualOrderFormProps {
