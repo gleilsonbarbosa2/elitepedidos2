@@ -616,7 +616,7 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ operator, storeSettings
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                 {filteredProducts.map(product => (
-                  <div key={product.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all duration-200 group">
+                     disabled={saving || (paymentInfo.method === 'dinheiro' && paymentInfo.changeFor && paymentInfo.changeFor < getTotal()) || (paymentInfo.method === 'misto' && Math.abs(splitInfo.amounts.reduce((sum, amount) => sum + (amount || 0), 0) - getTotal()) > 0.01)}
                     <div className="relative h-32 bg-gradient-to-br from-green-50 to-blue-50">
                       {productImages[product.id] || product.image_url ? (
                         <img 
