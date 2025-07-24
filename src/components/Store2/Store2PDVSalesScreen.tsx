@@ -43,6 +43,9 @@ const Store2PDVSalesScreen: React.FC<Store2PDVSalesScreenProps> = ({ operator, s
   const [showSplitModal, setShowSplitModal] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'dinheiro' | 'pix' | 'cartao_credito' | 'cartao_debito' | 'voucher' | 'misto'>('dinheiro');
   const [changeFor, setChangeFor] = useState<number>(0);
+  const [pixValue, setPixValue] = useState<number>(0);
+  const [cardValue, setCardValue] = useState<number>(0);
+  const [voucherValue, setVoucherValue] = useState<number>(0);
   const [splitCount, setSplitCount] = useState<number>(2);
   const [splitAmounts, setSplitAmounts] = useState<number[]>([]);
   const [customerInfo, setCustomerInfo] = useState({ name: '', phone: '' });
@@ -139,6 +142,9 @@ const Store2PDVSalesScreen: React.FC<Store2PDVSalesScreenProps> = ({ operator, s
         payment_details: {
           method: paymentMethod,
           change_for: paymentMethod === 'dinheiro' ? changeFor : undefined,
+          pix_value: paymentMethod === 'misto' ? pixValue : undefined,
+          card_value: paymentMethod === 'misto' ? cardValue : undefined,
+          voucher_value: paymentMethod === 'misto' ? voucherValue : undefined,
           split_info: splitAmounts.length > 1 ? {
             parts: splitCount,
             amounts: splitAmounts
@@ -169,6 +175,9 @@ const Store2PDVSalesScreen: React.FC<Store2PDVSalesScreenProps> = ({ operator, s
       // Resetar estados após venda finalizada
       setPaymentMethod('dinheiro');
       setChangeFor(0);
+      setPixValue(0);
+      setCardValue(0);
+      setVoucherValue(0);
       setSplitCount(2);
       setSplitAmounts([]);
       setCustomerInfo({ name: '', phone: '' });
@@ -752,6 +761,35 @@ const Store2PDVSalesScreen: React.FC<Store2PDVSalesScreenProps> = ({ operator, s
                   </div>
                 )}
                 
+                {paymentMethod === 'misto' && (
+                  <div className="space-y-1">
+                    {(changeFor || 0) > 0 && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Dinheiro:</span>
+                        <span className="font-medium text-green-600">{formatPrice(changeFor || 0)}</span>
+                      </div>
+                    )}
+                    {(pixValue || 0) > 0 && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">PIX:</span>
+                        <span className="font-medium text-blue-600">{formatPrice(pixValue || 0)}</span>
+                      </div>
+                    )}
+                    {(cardValue || 0) > 0 && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Cartão:</span>
+                        <span className="font-medium text-purple-600">{formatPrice(cardValue || 0)}</span>
+                      </div>
+                    )}
+                    {(voucherValue || 0) > 0 && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Voucher:</span>
+                        <span className="font-medium text-orange-600">{formatPrice(voucherValue || 0)}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+                
                 {splitAmounts.length > 1 && (
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Dividido:</span>
@@ -840,32 +878,216 @@ const Store2PDVSalesScreen: React.FC<Store2PDVSalesScreenProps> = ({ operator, s
 
             <div className="flex-1 overflow-y-auto p-4">
               <div className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Forma de Pagamento *
-                </label>
-                <div className="grid grid-cols-1 gap-2">
-                  {/* Same payment options with smaller styling */}
-                  <label className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
-                    <input
-                      type="radio"
-                      name="payment"
-                      value="dinheiro"
-                      checked={paymentMethod === 'dinheiro'}
-                      onChange={(e) => setPaymentMethod(e.target.value as any)}
-                      className="text-purple-600 h-4 w-4"
-                    />
-                    <div className="flex items-center gap-2 text-sm">
-                      <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                      </svg>
-                      <span className="font-medium text-sm">Dinheiro</span>
-                    </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Forma de Pagamento *
                   </label>
-                  
-                  {/* Continue with other payment methods with same compact styling */}
+                  <div className="grid grid-cols-1 gap-2">
+                    <label className="flex items-center gap-3 p-2 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                      <input
+                        type="radio"
+                        name="payment"
+                        value="dinheiro"
+                        checked={paymentMethod === 'dinheiro'}
+                        onChange={(e) => setPaymentMethod(e.target.value as any)}
+                        className="text-blue-600 h-4 w-4"
+                      />
+                      <div className="flex items-center gap-2 text-sm">
+                        <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v2a2 2 0 002 2z" />
+                        </svg>
+                        <span className="font-medium">Dinheiro</span>
+                      </div>
+                    </label>
+                    
+                    <label className="flex items-center gap-3 p-2 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                      <input
+                        type="radio"
+                        name="payment"
+                        value="pix"
+                        checked={paymentMethod === 'pix'}
+                        onChange={(e) => setPaymentMethod(e.target.value as any)}
+                        className="text-blue-600 h-4 w-4"
+                      />
+                      <div className="flex items-center gap-2 text-sm">
+                        <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
+                        <span className="font-medium">PIX</span>
+                      </div>
+                    </label>
+                    
+                    <label className="flex items-center gap-3 p-2 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                      <input
+                        type="radio"
+                        name="payment"
+                        value="cartao_credito"
+                        checked={paymentMethod === 'cartao_credito'}
+                        onChange={(e) => setPaymentMethod(e.target.value as any)}
+                        className="text-blue-600 h-4 w-4"
+                      />
+                      <div className="flex items-center gap-2 text-sm">
+                        <CreditCard className="w-4 h-4 text-purple-600" />
+                        <span className="font-medium">Cartão de Crédito</span>
+                      </div>
+                    </label>
+                    
+                    <label className="flex items-center gap-3 p-2 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                      <input
+                        type="radio"
+                        name="payment"
+                        value="cartao_debito"
+                        checked={paymentMethod === 'cartao_debito'}
+                        onChange={(e) => setPaymentMethod(e.target.value as any)}
+                        className="text-blue-600 h-4 w-4"
+                      />
+                      <div className="flex items-center gap-2 text-sm">
+                        <CreditCard className="w-4 h-4 text-indigo-600" />
+                        <span className="font-medium">Cartão de Débito</span>
+                      </div>
+                    </label>
+                    
+                    <label className="flex items-center gap-3 p-2 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                      <input
+                        type="radio"
+                        name="payment"
+                        value="voucher"
+                        checked={paymentMethod === 'voucher'}
+                        onChange={(e) => setPaymentMethod(e.target.value as any)}
+                        className="text-blue-600 h-4 w-4"
+                      />
+                      <div className="flex items-center gap-2 text-sm">
+                        <svg className="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                        </svg>
+                        <span className="font-medium">Voucher</span>
+                      </div>
+                    </label>
+                    
+                    <label className="flex items-center gap-3 p-2 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                      <input
+                        type="radio"
+                        name="payment"
+                        value="misto"
+                        checked={paymentMethod === 'misto'}
+                        onChange={(e) => setPaymentMethod(e.target.value as any)}
+                        className="text-blue-600 h-4 w-4"
+                      />
+                      <div className="flex items-center gap-2 text-sm">
+                        <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                        </svg>
+                        <span className="font-medium">Pagamento Misto</span>
+                      </div>
+                    </label>
+                  </div>
                 </div>
-              </div>
+                
+                {/* Campos específicos por forma de pagamento */}
+                {paymentMethod === 'dinheiro' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Troco para quanto?
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={changeFor || ''}
+                      onChange={(e) => setChangeFor(parseFloat(e.target.value) || 0)}
+                      className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                      placeholder="Valor para troco"
+                    />
+                  </div>
+                )}
+                
+                {paymentMethod === 'misto' && (
+                  <div className="space-y-3">
+                    <h4 className="font-medium text-gray-700 text-sm">Valores por Forma:</h4>
+                    
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                        Dinheiro (R$)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={changeFor || ''}
+                        onChange={(e) => setChangeFor(parseFloat(e.target.value) || 0)}
+                        className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        placeholder="0,00"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                        PIX (R$)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={pixValue || ''}
+                        onChange={(e) => setPixValue(parseFloat(e.target.value) || 0)}
+                        className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        placeholder="0,00"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                        Cartão (R$)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={cardValue || ''}
+                        onChange={(e) => setCardValue(parseFloat(e.target.value) || 0)}
+                        className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        placeholder="0,00"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                        Voucher (R$)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={voucherValue || ''}
+                        onChange={(e) => setVoucherValue(parseFloat(e.target.value) || 0)}
+                        className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        placeholder="0,00"
+                      />
+                    </div>
+                    
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-2">
+                      <div className="flex justify-between text-xs">
+                        <span>Total informado:</span>
+                        <span className="font-medium">
+                          {formatPrice((changeFor || 0) + (pixValue || 0) + (cardValue || 0) + (voucherValue || 0))}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span>Total da venda:</span>
+                        <span className="font-medium">{formatPrice(getTotal())}</span>
+                      </div>
+                      <div className="flex justify-between text-xs pt-1 border-t border-blue-200 mt-1">
+                        <span>Diferença:</span>
+                        <span className={`font-bold ${
+                          Math.abs(((changeFor || 0) + (pixValue || 0) + (cardValue || 0) + (voucherValue || 0)) - getTotal()) < 0.01
+                            ? 'text-green-600'
+                            : 'text-red-600'
+                        }`}>
+                          {formatPrice(((changeFor || 0) + (pixValue || 0) + (cardValue || 0) + (voucherValue || 0)) - getTotal())}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

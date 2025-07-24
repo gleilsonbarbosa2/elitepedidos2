@@ -1139,7 +1139,10 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ operator, storeSettings
                   </label>
                   <button
                     type="button"
-                    onClick={divideTempEqually}
+                    onClick={() => {
+                      const splitAmount = getTotal() / tempSplitInfo.parts;
+                      setTempSplitInfo(prev => ({ ...prev, amounts: Array(tempSplitInfo.parts).fill(splitAmount) }));
+                    }}
                     className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200 transition-colors"
                   >
                     Dividir Igualmente
@@ -1157,7 +1160,7 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ operator, storeSettings
                         step="0.01"
                         min="0"
                         value={amount}
-                        onChange={(e) => updateTempSplitAmount(index, parseFloat(e.target.value) || 0)}
+                        onChange={(e) => updateSplitAmount(index, parseFloat(e.target.value) || 0)}
                         className="flex-1 p-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500 text-sm"
                         placeholder="0.00"
                       />
@@ -1168,17 +1171,17 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ operator, storeSettings
                 <div className="mt-2 p-2 bg-gray-50 rounded-lg">
                   <div className="flex justify-between items-center">
                     <span className="text-xs font-medium text-gray-700">Total:</span>
-                    <span className="font-bold text-sm">{formatPrice(getTempSplitTotal())}</span>
+                    <span className="font-bold text-sm">{formatPrice(getSplitTotal())}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-xs text-gray-600">Esperado:</span>
                     <span className="font-medium text-sm">{formatPrice(getTotal())}</span>
                   </div>
-                  {Math.abs(getTempSplitTotal() - getTotal()) > 0.01 && (
+                  {Math.abs(getSplitTotal() - getTotal()) > 0.01 && (
                     <div className="flex justify-between items-center">
                       <span className="text-xs text-red-600">Diferença:</span>
                       <span className="font-medium text-red-600 text-sm">
-                        {formatPrice(Math.abs(getTempSplitTotal() - getTotal()))}
+                        {formatPrice(Math.abs(getSplitTotal() - getTotal()))}
                       </span>
                     </div>
                   )}
@@ -1196,10 +1199,10 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ operator, storeSettings
               </button>
               <button
                 onClick={handleConfirmSplit}
-                disabled={Math.abs(getTempSplitTotal() - getTotal()) > 0.01}
+                disabled={Math.abs(getSplitTotal() - getTotal()) > 0.01}
                 className="flex-1 px-3 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 text-white rounded-lg transition-colors flex items-center justify-center gap-2 text-sm"
               >
-                <Users size={16} />
+                <Split size={16} />
                 Confirmar
               </button>
             </div>
