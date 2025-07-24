@@ -64,7 +64,13 @@ const DeliveryPage: React.FC = () => {
   }, []);
   
   // Filtrar apenas produtos ativos
-  const activeProducts = products.filter(product => product.isActive !== false);
+  const activeProducts = products.filter(product => {
+    const isActive = product.isActive !== false;
+    if (!isActive) {
+      console.log(`🚫 Produto ${product.name} filtrado (inativo)`);
+    }
+    return isActive;
+  });
   
   // Verificar se hoje tem promoções especiais
   const hasSpecialToday = hasTodaySpecialPromotions(activeProducts);

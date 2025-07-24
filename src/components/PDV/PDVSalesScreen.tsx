@@ -12,10 +12,11 @@ import { supabase } from '../../lib/supabase';
 
 interface PDVSalesScreenProps {
   scaleHook?: ReturnType<typeof useScale>;
+  operator?: any;
   storeSettings?: any;
 }
 
-const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ scaleHook, storeSettings }) => {
+const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ scaleHook, operator, storeSettings }) => {
   // State for search and filters
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -40,7 +41,7 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ scaleHook, storeSetting
   const [printerSettings, setPrinterSettings] = useState({
     paper_width: '80mm',
     page_size: 300,
-    font_size: 2,
+    font_size: 14,
     delivery_font_size: 14,
     scale: 1,
     margin_left: 0,
@@ -64,7 +65,7 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ scaleHook, storeSetting
   }, []);
 
   const { products, loading: productsLoading, searchProducts } = usePDVProducts();
-  const { isOpen: isCashRegisterOpen } = usePDVCashRegister();
+  const { isOpen: isCashRegisterOpen, currentRegister } = usePDVCashRegister();
   const { 
     currentWeight,
     requestStableWeight,
@@ -329,6 +330,13 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ scaleHook, storeSetting
       return;
     }
     
+    // Check if Supabase is configured
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    if (!supabaseUrl || supabaseUrl.includes('placeholder')) {
+      alert('Sistema não configurado. Configure as variáveis de ambiente do Supabase para usar esta funcionalidade.');
+      return;
+    }
+    
     if (items.length === 0) {
       alert('Carrinho vazio. Adicione produtos antes de finalizar a venda.');
       return;
@@ -339,8 +347,13 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ scaleHook, storeSetting
     try {
       console.log('🚀 Iniciando finalização da venda...');
       
+      // Check if cash register is open
+      if (!isCashRegisterOpen || !currentRegister) {
+        throw new Error('Não é possível finalizar venda sem um caixa aberto');
+      }
+      
       const saleData = {
-        operator_id: 'admin-id', // TODO: Pegar do contexto de autenticação
+        operator_id: operator?.id || 'admin-id',
         customer_name: customerName || undefined,
         customer_phone: customerPhone || undefined,
         subtotal: getSubtotal(),
@@ -372,6 +385,55 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ scaleHook, storeSetting
       const sale = await createSale(saleData, saleItems, true, true);
       
       console.log('✅ Venda finalizada com sucesso:', sale);
+      
+      // Show success modal with better design
+      const successModal = document.createElement('div');
+      successModal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm';
+      successModal.innerHTML = `
+        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 transform transition-all">
+          <div class="text-center">
+            <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 mb-2">Venda finalizada!</h3>
+            <p class="text-gray-600 mb-6">Número: <span class="font-mono font-bold text-purple-600">${sale.sale_number}</span></p>
+            <div class="flex flex-col gap-3">
+              <button class="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-semibold transition-colors">
+                Imprimir Comprovante
+              </button>
+              <button class="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 rounded-lg font-medium transition-colors">
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      document.body.appendChild(successModal);
+      
+      // Add event listeners to buttons
+      const buttons = successModal.querySelectorAll('button');
+      if (buttons.length >= 2) {
+        // Print button
+        buttons[0].addEventListener('click', () => {
+          handlePrintReceipt();
+          document.body.removeChild(successModal);
+        });
+        
+        // Close button
+        buttons[1].addEventListener('click', () => {
+          document.body.removeChild(successModal);
+        });
+      }
+      
+      // Auto-close after 5 seconds
+      setTimeout(() => {
+        if (document.body.contains(successModal)) {
+          document.body.removeChild(successModal);
+        }
+      }, 5000);
 
       // Limpar carrinho
       clearCart();
@@ -381,8 +443,6 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ scaleHook, storeSetting
       setShowPayment(false);
       setPayments([]);
       setSplitPayment(false);
-      
-      alert(`Venda finalizada! Número: ${sale.sale_number}`);
       
       // TODO: Imprimir cupom se configurado
       
@@ -394,7 +454,42 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ scaleHook, storeSetting
         ? error.message 
         : 'Erro desconhecido ao finalizar venda';
         
-      alert(`Erro ao finalizar venda: ${errorMessage}`);
+      // Mostrar erro com estilo melhorado
+      const errorModal = document.createElement('div');
+      errorModal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm';
+      errorModal.innerHTML = `
+        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 transform transition-all">
+          <div class="text-center">
+            <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 mb-2">Erro ao finalizar venda</h3>
+            <p class="text-gray-600 mb-6">${errorMessage}</p>
+            <button class="w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded-lg font-semibold transition-colors">
+              Entendi
+            </button>
+          </div>
+        </div>
+      `;
+      
+      document.body.appendChild(errorModal);
+      
+      // Adicionar evento ao botão
+      const button = errorModal.querySelector('button');
+      if (button) {
+        button.addEventListener('click', () => {
+          document.body.removeChild(errorModal);
+        });
+      }
+      
+      // Auto-fechar após 5 segundos
+      setTimeout(() => {
+        if (document.body.contains(errorModal)) {
+          document.body.removeChild(errorModal);
+        }
+      }, 5000);
       
       // Log detalhado para depuração
       console.error('📊 Estado do carrinho no momento do erro:', {
@@ -447,8 +542,188 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ scaleHook, storeSetting
   };
 
   const handlePrintReceipt = () => {
-    setShowPrintPreview(true);
+    // Create thermal print window with pure HTML
+    const printWindow = window.open('', '_blank', 'width=300,height=600');
+    if (!printWindow) {
+      alert('Por favor, permita pop-ups para imprimir');
+      return;
+    }
+
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Cupom de Venda</title>
+        <style>
+          @page {
+            size: 80mm auto;
+            margin: 0;
+          }
+          
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            color: black !important;
+            background: white !important;
+          }
+          
+          body {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.3;
+            color: black;
+            background: white;
+            padding: 2mm;
+            width: 76mm;
+          }
+          
+          .center { text-align: center; }
+          .bold { font-weight: bold; }
+          .small { font-size: 12px; }
+          .separator { 
+            border-bottom: 1px dashed black; 
+            margin: 5px 0; 
+            padding-bottom: 5px; 
+          }
+          .flex-between { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+          }
+          .mb-1 { margin-bottom: 2px; }
+          .mb-2 { margin-bottom: 5px; }
+          .mb-3 { margin-bottom: 8px; }
+          .mt-1 { margin-top: 2px; }
+          .mt-2 { margin-top: 5px; }
+          .ml-2 { margin-left: 8px; }
+          
+          img {
+            max-width: 60mm;
+            height: auto;
+            display: block;
+            margin: 5px auto;
+          }
+        </style>
+      </head>
+      <body>
+        <!-- Cabeçalho -->
+        <div class="center mb-3 separator">
+          <div class="bold" style="font-size: 18px;">ELITE AÇAÍ</div>
+          <div class="small">CNPJ: ${storeSettings?.cnpj || '00.000.000/0001-00'}</div>
+          <div class="small">Rua Um, 1614-C, Residencial 1 - Cágado</div>
+          <div class="small">Tel: (85) 98904-1010</div>
+          <div class="small">CUPOM NÃO FISCAL</div>
+        </div>
+        
+        ${paymentType === 'pix' ? `
+        <!-- QR Code PIX -->
+        <div class="center mb-3 separator">
+          <div class="bold mb-2">QR CODE PIX</div>
+          <img 
+            src="/WhatsApp Image 2025-07-22 at 14.53.40.jpeg" 
+            alt="QR Code PIX" 
+            style="width: 60mm; height: 60mm;"
+          />
+          <div class="small">Chave PIX: 85989041010</div>
+          <div class="small">Nome: Grupo Elite</div>
+          <div class="bold">Valor: ${formatPrice(getTotal())}</div>
+        </div>
+        ` : ''}
+
+        <!-- Dados da venda -->
+        <div class="mb-3 separator">
+          <div class="small">Data: ${new Date().toLocaleDateString('pt-BR')}</div>
+          <div class="small">Hora: ${new Date().toLocaleTimeString('pt-BR')}</div>
+          ${customerName ? `<div class="small">Cliente: ${customerName}</div>` : ''}
+          ${customerPhone ? `<div class="small">Telefone: ${customerPhone}</div>` : ''}
+        </div>
+        
+        <!-- Itens -->
+        <div class="mb-3 separator">
+          <div class="bold mb-2">ITENS</div>
+          ${items.map((item, index) => `
+            <div class="mb-2">
+              <div class="bold">${item.product.name}</div>
+              ${item.product.is_weighable ? `
+                <div class="flex-between">
+                  <span class="small">${(item.weight || 0) * 1000}g x ${formatPrice((item.product.price_per_gram || 0) * 1000)}/kg</span>
+                  <span class="small">${formatPrice(item.subtotal)}</span>
+                </div>
+              ` : `
+                <div class="flex-between">
+                  <span class="small">${item.quantity} x ${formatPrice(item.product.unit_price || 0)}</span>
+                  <span class="small">${formatPrice(item.subtotal)}</span>
+                </div>
+              `}
+              ${item.discount > 0 ? `<div class="small">Desconto: -${formatPrice(item.discount)}</div>` : ''}
+            </div>
+          `).join('')}
+        </div>
+        
+        <!-- Totais -->
+        <div class="mb-3 separator">
+          <div class="flex-between">
+            <span class="small">Subtotal:</span>
+            <span class="small">${formatPrice(getSubtotal())}</span>
+          </div>
+          ${getDiscountAmount() > 0 ? `
+          <div class="flex-between">
+            <span class="small">Desconto:</span>
+            <span class="small">-${formatPrice(getDiscountAmount())}</span>
+          </div>
+          ` : ''}
+          <div class="flex-between bold" style="border-top: 1px solid black; padding-top: 3px; margin-top: 3px;">
+            <span>TOTAL:</span>
+            <span>${formatPrice(getTotal())}</span>
+          </div>
+        </div>
+        
+        <!-- Pagamento -->
+        <div class="mb-3 separator">
+          <div class="bold mb-1">PAGAMENTO:</div>
+          <div class="small">Forma: ${paymentTypes.find(t => t.id === paymentType)?.label || paymentType}</div>
+          ${paymentType === 'dinheiro' && receivedAmount > 0 ? `
+          <div class="small">Valor Recebido: ${formatPrice(receivedAmount)}</div>
+          <div class="small">Troco: ${formatPrice(getChangeAmount())}</div>
+          ` : ''}
+          ${paymentType === 'pix' ? `
+          <div class="mt-2">
+            <div class="small">⚠️ IMPORTANTE:</div>
+            <div class="small">Confirme o pagamento PIX</div>
+            <div class="small">antes de liberar o produto</div>
+          </div>
+          ` : ''}
+        </div>
+        
+        <!-- Rodapé -->
+        <div class="center small">
+          <div class="bold mb-2">Obrigado pela preferência!</div>
+          <div>Elite Açaí - O melhor açaí da cidade!</div>
+          <div>Volte sempre!</div>
+          <div class="mt-2" style="border-top: 1px solid black; padding-top: 5px;">
+            <div>Elite Açaí - CNPJ: ${storeSettings?.cnpj || '00.000.000/0001-00'}</div>
+            <div>Impresso: ${new Date().toLocaleString('pt-BR')}</div>
+            <div>Este não é um documento fiscal</div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    
+    // Wait for content to load and print
+    printWindow.onload = () => {
+      setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+      }, 500);
+    };
   };
+
 
   // Handle scale test modal close with refresh of connection status
   const handleScaleTestClose = () => {
@@ -466,7 +741,7 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ scaleHook, storeSetting
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-200px)]">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-200px)] print:hidden">
       {/* Produtos */}
       <div className="lg:col-span-2 bg-white rounded-xl shadow-lg overflow-hidden flex flex-col">
         <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-purple-50">
@@ -595,6 +870,21 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ scaleHook, storeSetting
             </div>
           )}
         </div>
+        
+        {/* Cash Register Closed Warning */}
+        {!isCashRegisterOpen && (
+          <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 mt-4 shadow-md">
+            <div className="flex items-start gap-3">
+              <div className="bg-red-100 rounded-full p-2 mt-0.5">
+                <AlertCircle size={20} className="text-red-600" />
+              </div>
+              <div>
+                <h3 className="font-bold text-red-800 mb-1">Caixa Fechado</h3>
+                <p className="text-red-700">Não é possível realizar vendas sem um caixa aberto. Por favor, abra um caixa primeiro na aba "Caixas".</p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Carrinho e Pagamento */}
@@ -758,7 +1048,7 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ scaleHook, storeSetting
             
             <button
               onClick={handleFinalizeSale}
-              disabled={isProcessing || items.length === 0 || (splitPayment && getRemainingAmount() > 0)}
+              disabled={isProcessing || items.length === 0 || (splitPayment && getRemainingAmount() > 0) || !isCashRegisterOpen}
               className="w-full bg-green-500 hover:bg-green-600 disabled:bg-gray-300 text-white py-3 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
             >
               {isProcessing ? (
@@ -933,13 +1223,32 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ scaleHook, storeSetting
               <div className="text-center mb-4">
                 <p className="font-bold">ELITE AÇAÍ</p>
                 <p>CNPJ: {storeSettings?.cnpj || '00.000.000/0001-00'}</p>
-                <p>Rua das Frutas, 123 - Centro</p>
+                <p>Rua Um, 1614-C, Residencial 1 - Cágado</p>
                 <p>Tel: (85) 98904-1010</p>
                 <p>--------------------------</p>
                 <p>CUPOM NÃO FISCAL</p>
                 <p>--------------------------</p>
               </div>
               
+              {/* QR Code PIX - apenas para pagamentos PIX */}
+              {paymentType === 'pix' && (
+                <div className="text-center mb-4 pb-2 border-b border-dashed border-gray-400">
+                  <div className="font-bold mb-2">QR CODE PIX</div>
+                  <img 
+                    src="/WhatsApp Image 2025-07-22 at 14.53.40.jpeg" 
+                    alt="QR Code PIX" 
+                    className="w-24 h-24 mx-auto mb-2"
+                    style={{ width: '60mm', height: '60mm', maxWidth: '100%' }}
+                  />
+                  <div className="space-y-1">
+                    <div>Chave PIX: 85989041010</div>
+                    <div>Nome: Grupo Elite</div>
+                    <div className="font-bold">Valor: {formatPrice(getTotal())}</div>
+                  </div>
+                  <p>--------------------------</p>
+                </div>
+              )}
+
               <div className="mb-4">
                 <p>Data: {new Date().toLocaleDateString()}</p>
                 <p>Hora: {new Date().toLocaleTimeString()}</p>
@@ -972,7 +1281,6 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ scaleHook, storeSetting
               </div>
               
               <div className="mb-4">
-                <p>Forma de Pagamento: {paymentTypes.find(t => t.id === paymentType)?.label}</p>
                 {paymentType === 'dinheiro' && receivedAmount > 0 && (
                   <>
                     <p>Valor Recebido: {formatPrice(receivedAmount)}</p>
