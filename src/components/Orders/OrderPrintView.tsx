@@ -336,7 +336,7 @@ const OrderPrintView: React.FC<OrderPrintViewProps> = ({ order, storeSettings, o
                 <p className="text-xs">Rua Dois, 2130-A</p>
                 <p className="text-xs">Residencial 1 - Cágado</p>
                 <p className="text-xs">Tel: (85) 98904-1010</p>
-                <p className="text-xs">CNPJ: {storeSettings?.cnpj || '00.000.000/0001-00'}</p>
+                <p className="text-xs">CNPJ: {storeSettings?.cnpj || '38.130.139/0001-22'}</p>
                 <p className="text-xs">--------------------------</p>
               </div>
               
@@ -439,7 +439,7 @@ const OrderPrintView: React.FC<OrderPrintViewProps> = ({ order, storeSettings, o
             <p style={{ fontSize: '10px', margin: '2px 0' }}>Rua Dois, 2130-A</p>
             <p style={{ fontSize: '10px', margin: '2px 0' }}>Residencial 1 - Cágado</p>
             <p style={{ fontSize: '10px', margin: '2px 0' }}>Tel: (85) 98904-1010</p>
-            <p style={{ fontSize: '10px', margin: '2px 0' }}>CNPJ: {storeSettings?.cnpj || '00.000.000/0001-00'}</p>
+            <p style={{ fontSize: '10px', margin: '2px 0' }}>CNPJ: {storeSettings?.cnpj || '38.130.139/0001-22'}</p>
           </div>
 
           {/* QR Code PIX */}

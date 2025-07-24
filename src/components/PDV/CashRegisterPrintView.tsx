@@ -261,7 +261,7 @@ const CashRegisterPrintView: React.FC<CashRegisterPrintViewProps> = ({
           </div>
 
           <div style="margin-top: 8px; padding-top: 5px; border-top: 1px solid black;">
-            <div>Elite Açaí - CNPJ: 00.000.000/0001-00</div>
+            <div>Elite Açaí - CNPJ: 38.130.139/0001-22</div>
             <div>Este é um relatório interno</div>
             <div>Não é um documento fiscal</div>
           </div>
@@ -375,7 +375,7 @@ const CashRegisterPrintView: React.FC<CashRegisterPrintViewProps> = ({
                 <p className="text-xs">Rua Dois, 2130-A</p>
                 <p className="text-xs">Residencial 1 - Cágado</p>
                 <p className="text-xs">Tel: (85) 98904-1010</p>
-                <p className="text-xs">CNPJ: 00.000.000/0001-00</p>
+                <p className="text-xs">CNPJ: 38.130.139/0001-22</p>
                 <p className="text-xs">--------------------------</p>
               </div>
               
@@ -500,7 +500,7 @@ const CashRegisterPrintView: React.FC<CashRegisterPrintViewProps> = ({
                 <p className="mt-2">Operador: Sistema</p>
                 <p>Impresso: {new Date().toLocaleString('pt-BR')}</p>
                 <div className="mt-2 pt-2 border-t border-gray-300">
-                  <p>Elite Açaí - CNPJ: 00.000.000/0001-00</p>
+                  <p>Elite Açaí - CNPJ: 38.130.139/0001-22</p>
                   <p>Este é um relatório interno</p>
                   <p>Não é um documento fiscal</p>
                 </div>
