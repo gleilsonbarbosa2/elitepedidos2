@@ -39,7 +39,7 @@ const Store2AttendanceLogin: React.FC<Store2AttendanceLoginProps> = ({ onLogin }
           </div>
           <h1 className="text-2xl font-bold text-gray-800 mb-2">Loja 2 - Atendimento</h1>
           <p className="text-gray-600">Elite Açaí - Unidade 2</p>
-          <p className="text-sm text-blue-600 mt-2">Rua Dois, 2130-A – Residencial 1 – Cágado</p>
+          <p className="text-sm text-blue-600 mt-2">Rua Dois, 2130‑A – Residencial 1 – Cágado</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">

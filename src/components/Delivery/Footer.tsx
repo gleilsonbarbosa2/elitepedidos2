@@ -23,7 +23,7 @@ const Footer: React.FC<FooterProps> = ({ storeSettings }) => {
                   <div className="w-2 h-2 bg-green-400 rounded-full"></div>
                   <span className="font-medium text-white">🏡 Loja 1</span>
                 </div>
-                <p className="text-sm">Rua Dois, 2130‑A – Residencial 1 – Cágado</p>
+                <p className="text-sm">Rua Um, 1614‑C – Residencial 1 – Cágado</p>
                 <p className="text-sm font-medium text-green-400">🕐 17h às 23h</p>
               </div>
               
@@ -32,7 +32,7 @@ const Footer: React.FC<FooterProps> = ({ storeSettings }) => {
                   <div className="w-2 h-2 bg-green-400 rounded-full"></div>
                   <span className="font-medium text-white">🏡 Loja 2</span>
                 </div>
-                <p className="text-sm">Rua Um, 1614‑C – Residencial 1 – Cágado</p>
+                <p className="text-sm">Rua Dois, 2130‑A – Residencial 1 – Cágado</p>
                 <p className="text-sm font-medium text-green-400">🕐 Aberta das 16h às 23h</p>
               </div>
             </div>
@@ -47,13 +47,13 @@ const Footer: React.FC<FooterProps> = ({ storeSettings }) => {
             <div className="space-y-4 text-gray-300">
               <div>
                 <p className="font-medium text-white mb-1">Loja 1</p>
-                <p className="text-sm">Rua Dois, 2130‑A</p>
+                <p className="text-sm">Rua Um, 1614‑C</p>
                 <p className="text-sm">Residencial 1 - Cágado</p>
                 <p className="text-sm text-green-400">17h às 23h</p>
               </div>
               <div>
                 <p className="font-medium text-white mb-1">Loja 2</p>
-                <p className="text-sm">Rua Dois, 2130-A</p>
+                <p className="text-sm">Rua Dois, 2130‑A</p>
                 <p className="text-sm">Residencial 1 - Cágado</p>
                 <p className="text-sm text-green-400">16h às 23h</p>
               </div>

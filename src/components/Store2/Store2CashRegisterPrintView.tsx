@@ -125,7 +125,7 @@ const Store2CashRegisterPrintView: React.FC<Store2CashRegisterPrintViewProps> = 
         <div class="center mb-3 separator">
           <div class="bold" style="font-size: 16px;">ELITE AÇAÍ - LOJA 2</div>
           <div class="small">Relatório de Caixa</div>
-          <div class="small">Rua Dois, 2130-A</div>
+          <div class="small">Rua Dois, 2130‑A</div>
           <div class="small">Residencial 1 - Cágado</div>
           <div class="small">Tel: (85) 98904-1010</div>
           <div class="small">WhatsApp: (85) 98904-1010</div>
@@ -373,7 +373,7 @@ const Store2CashRegisterPrintView: React.FC<Store2CashRegisterPrintViewProps> = 
               <div className="text-center mb-4">
                 <p className="font-bold text-lg">ELITE AÇAÍ - LOJA 2</p>
                 <p className="text-sm">Relatório de Caixa</p>
-                <p className="text-xs">Rua Dois, 2130-A</p>
+                <p className="text-xs">Rua Dois, 2130‑A</p>
                 <p className="text-xs">Residencial 1 - Cágado</p>
                 <p className="text-xs">Tel: (85) 98904-1010</p>
                 <p className="text-xs">WhatsApp: (85) 98904-1010</p>
@@ -498,7 +498,7 @@ const Store2CashRegisterPrintView: React.FC<Store2CashRegisterPrintViewProps> = 
                 <p>Impresso: {new Date().toLocaleString('pt-BR')}</p>
                 <div className="mt-2 pt-2 border-t border-gray-300">
                   <p>Elite Açaí - Loja 2</p>
-                  <p>Rua Dois, 2130-A – Residencial 1 – Cágado</p>
+                  <p>Rua Dois, 2130‑A – Residencial 1 – Cágado</p>
                   <p>CNPJ: 38.130.139/0001-22</p>
                   <p>Este é um relatório interno</p>
                   <p>Não é um documento fiscal</p>
@@ -646,7 +646,7 @@ const Store2CashRegisterPrintView: React.FC<Store2CashRegisterPrintViewProps> = 
             <p style={{ margin: '2px 0' }}>Impresso: {new Date().toLocaleString('pt-BR')}</p>
             <div style={{ marginTop: '15px', paddingTop: '10px', borderTop: '1px solid black' }}>
               <p style={{ margin: '2px 0' }}>Elite Açaí - Loja 2</p>
-              <p style={{ margin: '2px 0' }}>Rua Dois, 2130-A – Residencial 1 – Cágado</p>
+              <p style={{ margin: '2px 0' }}>Rua Dois, 2130‑A – Residencial 1 – Cágado</p>
               <p style={{ margin: '2px 0' }}>CNPJ: 38.130.139/0001-22</p>
               <p style={{ margin: '2px 0' }}>Este é um relatório interno</p>
               <p style={{ margin: '2px 0' }}>Não é um documento fiscal</p>

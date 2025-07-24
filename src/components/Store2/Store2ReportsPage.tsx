@@ -66,7 +66,7 @@ const Store2ReportsPage: React.FC = () => {
             </div>
             <h1 className="text-2xl font-bold text-gray-800 mb-2">Relatórios - Loja 2</h1>
             <p className="text-gray-600">Elite Açaí - Acesso Restrito</p>
-            <p className="text-sm text-blue-600 mt-2">Rua Dois, 2130-A – Residencial 1 – Cágado</p>
+            <p className="text-sm text-blue-600 mt-2">Rua Dois, 2130‑A – Residencial 1 – Cágado</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-6">

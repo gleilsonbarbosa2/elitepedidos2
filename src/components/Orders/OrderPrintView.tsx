@@ -87,7 +87,7 @@ const OrderPrintView: React.FC<OrderPrintViewProps> = ({ order, storeSettings, o
         <div class="center mb-3 separator">
           <div class="bold" style="font-size: 16px;">ELITE AÇAÍ</div>
           <div class="small">Delivery Premium</div>
-          <div class="small">Rua Dois, 2130-A</div>
+          <div class="small">Rua Um, 1614-C</div>
           <div class="small">Residencial 1 - Cágado</div>
           <div class="small">Tel: (85) 98904-1010</div>
           <div class="small">CNPJ: ${storeSettings?.cnpj || '38.130.139/0001-22'}</div>
@@ -333,7 +333,7 @@ const OrderPrintView: React.FC<OrderPrintViewProps> = ({ order, storeSettings, o
               <div className="text-center mb-4">
                 <p className="font-bold text-lg">ELITE AÇAÍ</p>
                 <p className="text-sm">Delivery Premium</p>
-                <p className="text-xs">Rua Dois, 2130-A</p>
+                <p className="text-xs">Rua Um, 1614-C</p>
                 <p className="text-xs">Residencial 1 - Cágado</p>
                 <p className="text-xs">Tel: (85) 98904-1010</p>
                 <p className="text-xs">CNPJ: {storeSettings?.cnpj || '38.130.139/0001-22'}</p>

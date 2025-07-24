@@ -52,7 +52,7 @@ const Store2UnifiedAttendancePage: React.FC<Store2UnifiedAttendancePageProps> = 
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-gray-800">Loja 2 - Atendimento</h1>
-                <p className="text-gray-600">Elite Açaí - Unidade 2 (Rua Dois, 2130-A)</p>
+                <p className="text-gray-600">Elite Açaí - Unidade 2 (Rua Dois, 2130‑A)</p>
               </div>
             </div>
             
