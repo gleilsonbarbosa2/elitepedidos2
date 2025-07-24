@@ -48,8 +48,20 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ operator, storeSettings
   const [tempSplitInfo, setTempSplitInfo] = useState(splitInfo);
   const [customerInfo, setCustomerInfo] = useState({ name: '', phone: '' });
   const [saleNotes, setSaleNotes] = useState('');
+  const [calculatedChange, setCalculatedChange] = useState(0);
   const { getProductImage } = useImageUpload();
   const [productImages, setProductImages] = useState<Record<string, string>>({});
+
+  // Calculate change when changeFor value changes
+  useEffect(() => {
+    if (tempPaymentInfo.changeFor && tempPaymentInfo.changeFor > 0) {
+      const total = getTotal();
+      const change = tempPaymentInfo.changeFor - total;
+      setCalculatedChange(change > 0 ? change : 0);
+    } else {
+      setCalculatedChange(0);
+    }
+  }, [tempPaymentInfo.changeFor, getTotal]);
 
   const categories = [
     { id: 'all', label: 'Todos', icon: '🛍️' },
@@ -144,8 +156,16 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ operator, storeSettings
 
   const handleConfirmPayment = () => {
     console.log('💳 Confirmando pagamento:', tempPaymentInfo);
+    
+    // Validate payment before processing
+    if (tempPaymentInfo.method === 'dinheiro' && tempPaymentInfo.changeFor && tempPaymentInfo.changeFor < getTotal()) {
+      alert('O valor para troco deve ser maior ou igual ao total da venda');
+      return;
+    }
+    
     updatePaymentInfo(tempPaymentInfo);
     setShowPaymentModal(false);
+    setCalculatedChange(0);
     
     // Mostrar feedback visual
     const successMessage = document.createElement('div');
@@ -200,6 +220,16 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ operator, storeSettings
         document.body.removeChild(successMessage);
       }
     }, 3000);
+  };
+
+  const updateTempSplitParts = (newParts: number) => {
+    const total = getTotal();
+    const splitAmount = total / newParts;
+    setTempSplitInfo({
+      ...tempSplitInfo,
+      parts: newParts,
+      amounts: Array(newParts).fill(splitAmount)
+    });
   };
 
   const updateSplitAmount = (index: number, amount: number) => {
@@ -1042,18 +1072,32 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ operator, storeSettings
                     placeholder={`Mínimo: ${formatPrice(getTotal())}`}
                   />
                   
-                  {tempPaymentInfo.changeFor && tempPaymentInfo.changeFor >= getTotal() && (
-                    <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg">
+                  {calculatedChange > 0 && (
+                    <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
                       <div className="flex items-center gap-2">
-                        <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                         </svg>
-                        <div className="text-sm">
-                          <p className="font-medium text-green-800 text-sm">Troco a dar:</p>
-                          <p className="text-lg font-bold text-green-600">
-                            {formatPrice(tempPaymentInfo.changeFor - getTotal())}
+                        <div>
+                          <p className="text-sm font-medium text-green-800">
+                            💰 Troco para o cliente:
+                          </p>
+                          <p className="text-lg font-bold text-green-700">
+                            {formatPrice(calculatedChange)}
                           </p>
                         </div>
+                      </div>
+                    </div>
+                  )}
+                  {tempPaymentInfo.changeFor && tempPaymentInfo.changeFor < getTotal() && (
+                    <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <p className="text-sm font-medium text-red-800">
+                          ⚠️ Valor insuficiente para troco
+                        </p>
                       </div>
                     </div>
                   )}
@@ -1071,7 +1115,7 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ operator, storeSettings
               </button>
               <button
                 onClick={handleConfirmPayment}
-                disabled={tempPaymentInfo.method === 'dinheiro' && (!tempPaymentInfo.changeFor || tempPaymentInfo.changeFor < getTotal())}
+                disabled={tempPaymentInfo.method === 'dinheiro' && tempPaymentInfo.changeFor && tempPaymentInfo.changeFor < getTotal()}
                 className="flex-1 px-3 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 text-white rounded-lg transition-colors flex items-center justify-center gap-2 text-sm"
               >
                 <CreditCard size={16} />
