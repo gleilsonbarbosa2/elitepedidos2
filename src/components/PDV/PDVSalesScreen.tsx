@@ -38,6 +38,12 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ operator, storeSettings
   const [lastSale, setLastSale] = useState<any>(null);
   const [showDiscountModal, setShowDiscountModal] = useState(false);
   const [tempDiscount, setTempDiscount] = useState({ type: 'none' as 'none' | 'percentage' | 'amount', value: 0 });
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showSplitModal, setShowSplitModal] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'dinheiro' | 'pix' | 'cartao_credito' | 'cartao_debito' | 'voucher' | 'misto'>('dinheiro');
+  const [changeFor, setChangeFor] = useState<number>(0);
+  const [splitCount, setSplitCount] = useState<number>(2);
+  const [splitAmounts, setSplitAmounts] = useState<number[]>([]);
   const { getProductImage } = useImageUpload();
   const [productImages, setProductImages] = useState<Record<string, string>>({});
 
@@ -121,6 +127,50 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ operator, storeSettings
   const handleCancelDiscount = () => {
     setTempDiscount({ type: 'none', value: 0 });
     setShowDiscountModal(false);
+  };
+
+  const handleOpenPaymentModal = () => {
+    setShowPaymentModal(true);
+  };
+
+  const handleClosePaymentModal = () => {
+    setShowPaymentModal(false);
+    setChangeFor(0);
+  };
+
+  const handleOpenSplitModal = () => {
+    const total = getTotal();
+    const splitAmount = total / splitCount;
+    setSplitAmounts(Array(splitCount).fill(splitAmount));
+    setShowSplitModal(true);
+  };
+
+  const handleCloseSplitModal = () => {
+    setShowSplitModal(false);
+    setSplitCount(2);
+    setSplitAmounts([]);
+  };
+
+  const updateSplitAmount = (index: number, amount: number) => {
+    const newAmounts = [...splitAmounts];
+    newAmounts[index] = amount;
+    setSplitAmounts(newAmounts);
+  };
+
+  const getSplitTotal = () => {
+    return splitAmounts.reduce((sum, amount) => sum + amount, 0);
+  };
+
+  const getPaymentMethodLabel = (method: string) => {
+    const labels: Record<string, string> = {
+      'dinheiro': 'Dinheiro',
+      'pix': 'PIX',
+      'cartao_credito': 'Cartão de Crédito',
+      'cartao_debito': 'Cartão de Débito',
+      'voucher': 'Voucher',
+      'misto': 'Pagamento Misto'
+    };
+    return labels[method] || method;
   };
 
   const getDiscountAmount = () => {
@@ -695,6 +745,7 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ operator, storeSettings
 
               <div className="grid grid-cols-2 gap-2">
                 <button
+                  onClick={handleOpenPaymentModal}
                   className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-2 px-3 rounded-lg text-sm font-medium transition-colors"
                 >
                   <DollarSign size={16} />
@@ -702,6 +753,7 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ operator, storeSettings
                 </button>
                 
                 <button
+                  onClick={handleOpenSplitModal}
                   className="flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white py-2 px-3 rounded-lg text-sm font-medium transition-colors"
                 >
                   <Split size={16} />
@@ -721,6 +773,257 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ operator, storeSettings
           )}
         </div>
       </div>
+
+      {/* Modal de pagamento */}
+      {showPaymentModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-800">Forma de Pagamento</h3>
+              <button
+                onClick={handleClosePaymentModal}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Selecione a forma de pagamento:
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { id: 'dinheiro', label: 'Dinheiro', icon: '💵' },
+                    { id: 'pix', label: 'PIX', icon: '📱' },
+                    { id: 'cartao_credito', label: 'Cartão Crédito', icon: '💳' },
+                    { id: 'cartao_debito', label: 'Cartão Débito', icon: '💳' },
+                    { id: 'voucher', label: 'Voucher', icon: '🎫' },
+                    { id: 'misto', label: 'Misto', icon: '🔄' }
+                  ].map(method => (
+                    <button
+                      key={method.id}
+                      onClick={() => setPaymentMethod(method.id as any)}
+                      className={`p-3 rounded-lg border-2 transition-all text-left ${
+                        paymentMethod === method.id
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">{method.icon}</span>
+                        <span className="font-medium text-sm">{method.label}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {paymentMethod === 'dinheiro' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Troco para quanto? (opcional)
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      step="0.01"
+                      min={getTotal()}
+                      value={changeFor || ''}
+                      onChange={(e) => setChangeFor(parseFloat(e.target.value) || 0)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder={`Mínimo: ${formatPrice(getTotal())}`}
+                    />
+                    <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                      R$
+                    </span>
+                  </div>
+                  {changeFor > 0 && changeFor >= getTotal() && (
+                    <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-green-700">Troco:</span>
+                        <span className="font-bold text-green-800">
+                          {formatPrice(changeFor - getTotal())}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="bg-blue-50 rounded-lg p-3">
+                <div className="flex justify-between text-sm mb-2">
+                  <span>Total a pagar:</span>
+                  <span className="font-bold text-blue-800">{formatPrice(getTotal())}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Forma de pagamento:</span>
+                  <span className="font-medium text-blue-700">{getPaymentMethodLabel(paymentMethod)}</span>
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={handleClosePaymentModal}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => {
+                    // Aplicar forma de pagamento e fechar modal
+                    handleClosePaymentModal();
+                    // Aqui você pode salvar a forma de pagamento escolhida
+                    console.log('Forma de pagamento selecionada:', paymentMethod);
+                  }}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium transition-colors"
+                >
+                  Confirmar Pagamento
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de dividir conta */}
+      {showSplitModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-800">Dividir Conta</h3>
+              <button
+                onClick={handleCloseSplitModal}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Dividir em quantas partes?
+                </label>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      const newCount = Math.max(2, splitCount - 1);
+                      setSplitCount(newCount);
+                      const splitAmount = getTotal() / newCount;
+                      setSplitAmounts(Array(newCount).fill(splitAmount));
+                    }}
+                    className="bg-gray-200 hover:bg-gray-300 rounded-full p-2 transition-colors"
+                  >
+                    <Minus size={16} />
+                  </button>
+                  <div className="flex-1 text-center text-lg font-bold">
+                    {splitCount} partes
+                  </div>
+                  <button
+                    onClick={() => {
+                      const newCount = Math.min(10, splitCount + 1);
+                      setSplitCount(newCount);
+                      const splitAmount = getTotal() / newCount;
+                      setSplitAmounts(Array(newCount).fill(splitAmount));
+                    }}
+                    className="bg-gray-200 hover:bg-gray-300 rounded-full p-2 transition-colors"
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Valores por pessoa:
+                </label>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {splitAmounts.map((amount, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-gray-600 w-16">
+                        Pessoa {index + 1}:
+                      </span>
+                      <div className="relative flex-1">
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={amount.toFixed(2)}
+                          onChange={(e) => updateSplitAmount(index, parseFloat(e.target.value) || 0)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                        />
+                        <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-xs">
+                          R$
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-purple-50 rounded-lg p-3">
+                <div className="flex justify-between text-sm mb-1">
+                  <span>Total original:</span>
+                  <span className="font-medium">{formatPrice(getTotal())}</span>
+                </div>
+                <div className="flex justify-between text-sm mb-1">
+                  <span>Total dividido:</span>
+                  <span className="font-medium">{formatPrice(getSplitTotal())}</span>
+                </div>
+                <div className="flex justify-between text-sm pt-2 border-t border-purple-200">
+                  <span>Diferença:</span>
+                  <span className={`font-bold ${
+                    Math.abs(getSplitTotal() - getTotal()) < 0.01 
+                      ? 'text-green-600' 
+                      : 'text-red-600'
+                  }`}>
+                    {formatPrice(getSplitTotal() - getTotal())}
+                  </span>
+                </div>
+                {Math.abs(getSplitTotal() - getTotal()) >= 0.01 && (
+                  <p className="text-xs text-red-600 mt-1">
+                    ⚠️ A soma não confere com o total original
+                  </p>
+                )}
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    // Dividir igualmente
+                    const splitAmount = getTotal() / splitCount;
+                    setSplitAmounts(Array(splitCount).fill(splitAmount));
+                  }}
+                  className="flex-1 px-4 py-2 border border-purple-300 text-purple-700 rounded-lg hover:bg-purple-50 transition-colors text-sm"
+                >
+                  Dividir Igualmente
+                </button>
+                <button
+                  onClick={handleCloseSplitModal}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm"
+                >
+                  Cancelar
+                </button>
+              </div>
+
+              <button
+                onClick={() => {
+                  // Processar divisão da conta
+                  console.log('Conta dividida:', splitAmounts);
+                  handleCloseSplitModal();
+                  // Aqui você pode implementar a lógica para processar cada parte da conta
+                }}
+                disabled={Math.abs(getSplitTotal() - getTotal()) >= 0.01}
+                className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 text-white py-2 rounded-lg font-medium transition-colors"
+              >
+                Confirmar Divisão
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal de desconto */}
       {showDiscountModal && (
