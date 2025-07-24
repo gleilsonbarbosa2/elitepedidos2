@@ -16,6 +16,7 @@ import {
   Printer
 } from 'lucide-react';
 import Store2CashRegisterPrintView from './Store2CashRegisterPrintView';
+import Store2CashRegisterDetails from './Store2CashRegisterDetails';
 
 const Store2CashRegisterMenu: React.FC = () => {
   const {
@@ -448,41 +449,74 @@ const Store2CashRegisterMenu: React.FC = () => {
 
       {/* Resumo do Caixa */}
       {currentRegister && (
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Resumo do Caixa - Loja 2</h3>
+        <>
+          <Store2CashRegisterDetails register={currentRegister} summary={summary} onRefresh={refreshData} />
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-3">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Valor de abertura:</span>
-                <span className="font-medium">{formatPrice(summary.opening_amount)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Vendas:</span>
-                <span className="font-medium text-green-600">{formatPrice(summary.sales_total)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Outras entradas:</span>
-                <span className="font-medium text-green-600">{formatPrice(summary.other_income_total)}</span>
-              </div>
+          {/* Histórico de Movimentações */}
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div className="p-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-800">Histórico de Movimentações - Loja 2</h3>
             </div>
             
-            <div className="space-y-3">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Saídas:</span>
-                <span className="font-medium text-red-600">{formatPrice(summary.total_expense)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Saldo esperado:</span>
-                <span className="font-medium text-purple-600">{formatPrice(summary.expected_balance)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Vendas realizadas:</span>
-                <span className="font-medium">{summary.sales_count}</span>
-              </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="text-left py-3 px-4 font-medium text-gray-700">Data/Hora</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-700">Tipo</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-700">Descrição</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-700">Forma</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-700">Valor</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {entries.map((entry) => (
+                    <tr key={entry.id} className="hover:bg-gray-50">
+                      <td className="py-4 px-4">
+                        <span className="text-sm text-gray-600">{new Date(entry.created_at).toLocaleString('pt-BR')}</span>
+                      </td>
+                      <td className="py-4 px-4">
+                        <div className="flex items-center gap-2">
+                          {entry.type === 'income' ? (
+                            <ArrowDownCircle size={16} className="text-green-600" />
+                          ) : (
+                            <ArrowUpCircle size={16} className="text-red-600" />
+                          )}
+                          <span className={`text-sm font-medium ${
+                            entry.type === 'income' ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                            {entry.type === 'income' ? 'Entrada' : 'Saída'}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <span className="text-sm text-gray-800">{entry.description}</span>
+                      </td>
+                      <td className="py-4 px-4">
+                        <span className="text-sm text-gray-600">{getPaymentMethodName(entry.payment_method)}</span>
+                      </td>
+                      <td className="py-4 px-4">
+                        <span className={`font-semibold ${
+                          entry.type === 'income' ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          {entry.type === 'income' ? '+' : '-'}
+                          {formatPrice(entry.amount)}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
+            
+            {entries.length === 0 && (
+              <div className="text-center py-12">
+                <DollarSign size={48} className="mx-auto text-gray-300 mb-4" />
+                <p className="text-gray-500">Nenhuma movimentação registrada - Loja 2</p>
+              </div>
+            )}
           </div>
-        </div>
+        </>
       )}
 
       {/* Open Register Modal */}
