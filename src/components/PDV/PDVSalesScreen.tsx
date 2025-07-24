@@ -616,7 +616,7 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ operator, storeSettings
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                 
-                {
+                
                  {filteredProducts.map(product => {
   const isDisabled =
     saving ||
