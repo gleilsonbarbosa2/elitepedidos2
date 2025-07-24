@@ -45,6 +45,8 @@ const Store2PDVSalesScreen: React.FC<Store2PDVSalesScreenProps> = ({ operator, s
   const [changeFor, setChangeFor] = useState<number>(0);
   const [splitCount, setSplitCount] = useState<number>(2);
   const [splitAmounts, setSplitAmounts] = useState<number[]>([]);
+  const [customerInfo, setCustomerInfo] = useState({ name: '', phone: '' });
+  const [saleNotes, setSaleNotes] = useState('');
   const { getProductImage } = useImageUpload();
   const [productImages, setProductImages] = useState<Record<string, string>>({});
 
@@ -127,16 +129,23 @@ const Store2PDVSalesScreen: React.FC<Store2PDVSalesScreenProps> = ({ operator, s
 
       const saleData = {
         operator_id: operator?.id,
-        customer_name: 'Cliente Loja 2',
-        customer_phone: '',
+        customer_name: customerInfo.name || 'Cliente Loja 2',
+        customer_phone: customerInfo.phone || '',
         subtotal: getSubtotal(),
         discount_amount: discountAmount,
         discount_percentage: discount.type === 'percentage' ? discount.value : 0,
         total_amount: getTotal(),
-        payment_type: 'dinheiro' as const,
-        payment_details: {},
-        change_amount: 0,
-        notes: 'Venda Loja 2',
+        payment_type: paymentMethod,
+        payment_details: {
+          method: paymentMethod,
+          change_for: paymentMethod === 'dinheiro' ? changeFor : undefined,
+          split_info: splitAmounts.length > 1 ? {
+            parts: splitCount,
+            amounts: splitAmounts
+          } : undefined
+        },
+        change_amount: paymentMethod === 'dinheiro' && changeFor > 0 ? changeFor - getTotal() : 0,
+        notes: saleNotes || `Venda Loja 2 - ${getPaymentMethodLabel(paymentMethod)}`,
         is_cancelled: false,
         channel: 'loja2'
       };
@@ -156,6 +165,14 @@ const Store2PDVSalesScreen: React.FC<Store2PDVSalesScreenProps> = ({ operator, s
       const sale = await createSale(saleData, saleItems, currentRegister?.id);
       setLastSale(sale);
       clearCart();
+      
+      // Resetar estados após venda finalizada
+      setPaymentMethod('dinheiro');
+      setChangeFor(0);
+      setSplitCount(2);
+      setSplitAmounts([]);
+      setCustomerInfo({ name: '', phone: '' });
+      setSaleNotes('');
       
       // Auto print for Store 2
       setTimeout(() => {
@@ -191,7 +208,7 @@ const Store2PDVSalesScreen: React.FC<Store2PDVSalesScreenProps> = ({ operator, s
 
   const handleClosePaymentModal = () => {
     setShowPaymentModal(false);
-    setChangeFor(0);
+    // Não resetar valores para manter a seleção
   };
 
   const handleOpenSplitModal = () => {
@@ -203,8 +220,7 @@ const Store2PDVSalesScreen: React.FC<Store2PDVSalesScreenProps> = ({ operator, s
 
   const handleCloseSplitModal = () => {
     setShowSplitModal(false);
-    setSplitCount(2);
-    setSplitAmounts([]);
+    // Não resetar valores para manter a configuração
   };
 
   const updateSplitAmount = (index: number, amount: number) => {
@@ -869,12 +885,46 @@ const Store2PDVSalesScreen: React.FC<Store2PDVSalesScreenProps> = ({ operator, s
 
               <div className="bg-blue-50 rounded-lg p-3">
                 <div className="flex justify-between text-sm mb-2">
+                  <span>Subtotal:</span>
+                  <span>{formatPrice(getTotal())}</span>
+                </div>
+                {paymentMethod === 'dinheiro' && changeFor > 0 && changeFor >= getTotal() && (
+                  <>
+                    <div className="flex justify-between text-sm mb-2">
+                      <span>Valor recebido:</span>
+                      <span className="font-medium">{formatPrice(changeFor)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm mb-2">
+                      <span>Troco:</span>
+                      <span className="font-bold text-green-600">{formatPrice(changeFor - getTotal())}</span>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div className="bg-gray-50 rounded-lg p-3">
+                <div className="flex justify-between text-sm mb-2">
                   <span>Total a pagar:</span>
                   <span className="font-bold text-blue-800">{formatPrice(getTotal())}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span>Forma de pagamento:</span>
                   <span className="font-medium text-blue-700">{getPaymentMethodLabel(paymentMethod)}</span>
+                </div>
+              </div>
+              
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Nome do Cliente (opcional)
+                  </label>
+                  <input
+                    type="text"
+                    value={customerInfo.name}
+                    onChange={(e) => setCustomerInfo(prev => ({ ...prev, name: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Nome do cliente"
+                  />
                 </div>
               </div>
 
@@ -887,9 +937,7 @@ const Store2PDVSalesScreen: React.FC<Store2PDVSalesScreenProps> = ({ operator, s
                 </button>
                 <button
                   onClick={() => {
-                    // Aplicar forma de pagamento e fechar modal
                     handleClosePaymentModal();
-                    console.log('Forma de pagamento selecionada (Loja 2):', paymentMethod);
                   }}
                   className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium transition-colors"
                 >
@@ -1024,8 +1072,6 @@ const Store2PDVSalesScreen: React.FC<Store2PDVSalesScreenProps> = ({ operator, s
 
               <button
                 onClick={() => {
-                  // Processar divisão da conta
-                  console.log('Conta dividida (Loja 2):', splitAmounts);
                   handleCloseSplitModal();
                 }}
                 disabled={Math.abs(getSplitTotal() - getTotal()) >= 0.01}

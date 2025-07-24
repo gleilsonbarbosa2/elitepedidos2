@@ -213,6 +213,23 @@ export const useStore2Cart = () => {
     type: 'none',
     value: 0
   });
+  const [paymentInfo, setPaymentInfo] = useState<{
+    method: 'dinheiro' | 'pix' | 'cartao_credito' | 'cartao_debito' | 'voucher' | 'misto';
+    changeFor?: number;
+    customerName?: string;
+    customerPhone?: string;
+  }>({
+    method: 'dinheiro'
+  });
+  const [splitInfo, setSplitInfo] = useState<{
+    enabled: boolean;
+    parts: number;
+    amounts: number[];
+  }>({
+    enabled: false,
+    parts: 2,
+    amounts: []
+  });
 
   const addItem = useCallback((product: PDVProduct, quantity: number, weight?: number) => {
     const existingIndex = items.findIndex(item => item.product.id === product.id);
@@ -281,6 +298,8 @@ export const useStore2Cart = () => {
   const clearCart = useCallback(() => {
     setItems([]);
     setDiscount({ type: 'none', value: 0 });
+    setPaymentInfo({ method: 'dinheiro' });
+    setSplitInfo({ enabled: false, parts: 2, amounts: [] });
   }, []);
 
   const getSubtotal = useCallback(() => {
@@ -301,14 +320,25 @@ export const useStore2Cart = () => {
     return Math.max(0, getSubtotal() - getDiscountAmount());
   }, [getSubtotal, getDiscountAmount]);
 
+  const updatePaymentInfo = useCallback((info: Partial<typeof paymentInfo>) => {
+    setPaymentInfo(prev => ({ ...prev, ...info }));
+  }, []);
+
+  const updateSplitInfo = useCallback((info: Partial<typeof splitInfo>) => {
+    setSplitInfo(prev => ({ ...prev, ...info }));
+  }, []);
   return {
     items,
     discount,
+    paymentInfo,
+    splitInfo,
     addItem,
     removeItem,
     updateItemQuantity,
     updateItemWeight,
     setDiscount,
+    updatePaymentInfo,
+    updateSplitInfo,
     clearCart,
     getSubtotal,
     getDiscountAmount,

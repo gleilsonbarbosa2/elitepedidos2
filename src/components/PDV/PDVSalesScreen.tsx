@@ -19,10 +19,14 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ operator, storeSettings
   const { createSale, loading: salesLoading } = usePDVSales();
   const { 
     items, 
+    paymentInfo,
+    splitInfo,
     addItem, 
     removeItem, 
     updateItemQuantity, 
     updateItemWeight,
+    updatePaymentInfo,
+    updateSplitInfo,
     clearCart,
     getSubtotal,
     getTotal,
@@ -40,10 +44,8 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ operator, storeSettings
   const [tempDiscount, setTempDiscount] = useState({ type: 'none' as 'none' | 'percentage' | 'amount', value: 0 });
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showSplitModal, setShowSplitModal] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'dinheiro' | 'pix' | 'cartao_credito' | 'cartao_debito' | 'voucher' | 'misto'>('dinheiro');
-  const [changeFor, setChangeFor] = useState<number>(0);
-  const [splitCount, setSplitCount] = useState<number>(2);
-  const [splitAmounts, setSplitAmounts] = useState<number[]>([]);
+  const [tempPaymentInfo, setTempPaymentInfo] = useState(paymentInfo);
+  const [tempSplitInfo, setTempSplitInfo] = useState(splitInfo);
   const [customerInfo, setCustomerInfo] = useState({ name: '', phone: '' });
   const [saleNotes, setSaleNotes] = useState('');
   const { getProductImage } = useImageUpload();
@@ -132,34 +134,49 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ operator, storeSettings
   };
 
   const handleOpenPaymentModal = () => {
+    setTempPaymentInfo(paymentInfo);
     setShowPaymentModal(true);
   };
 
   const handleClosePaymentModal = () => {
     setShowPaymentModal(false);
-    // Não resetar valores para manter a seleção
+  };
+
+  const handleConfirmPayment = () => {
+    updatePaymentInfo(tempPaymentInfo);
+    setShowPaymentModal(false);
   };
 
   const handleOpenSplitModal = () => {
     const total = getTotal();
-    const splitAmount = total / splitCount;
-    setSplitAmounts(Array(splitCount).fill(splitAmount));
+    const splitAmount = total / tempSplitInfo.parts;
+    setTempSplitInfo({
+      ...tempSplitInfo,
+      amounts: Array(tempSplitInfo.parts).fill(splitAmount)
+    });
     setShowSplitModal(true);
   };
 
   const handleCloseSplitModal = () => {
     setShowSplitModal(false);
-    // Não resetar valores para manter a configuração
-  };
 
   const updateSplitAmount = (index: number, amount: number) => {
-    const newAmounts = [...splitAmounts];
+  const handleConfirmSplit = () => {
+    updateSplitInfo({
+      enabled: true,
+      parts: tempSplitInfo.parts,
+      amounts: tempSplitInfo.amounts
+    });
+    setShowSplitModal(false);
+  };
+
+    const newAmounts = [...tempSplitInfo.amounts];
     newAmounts[index] = amount;
-    setSplitAmounts(newAmounts);
+    setTempSplitInfo(prev => ({ ...prev, amounts: newAmounts }));
   };
 
   const getSplitTotal = () => {
-    return splitAmounts.reduce((sum, amount) => sum + amount, 0);
+    return tempSplitInfo.amounts.reduce((sum, amount) => sum + amount, 0);
   };
 
   const getPaymentMethodLabel = (method: string) => {
@@ -202,17 +219,41 @@ const PDVSalesScreen: React.FC<PDVSalesScreenProps> = ({ operator, storeSettings
       const discountAmount = getDiscountAmount();
 
       const saleData = {
+      // Calcular troco se for dinheiro
+      const changeAmount = paymentInfo.method === 'dinheiro' && paymentInfo.changeFor 
+        ? Math.max(0, paymentInfo.changeFor - getTotal())
+        : 0;
+
+      // Preparar detalhes do pagamento
+      const paymentDetails: any = {
+        method: paymentInfo.method,
+        customer_name: paymentInfo.customerName,
+        customer_phone: paymentInfo.customerPhone
+      };
+
+      if (paymentInfo.method === 'dinheiro' && paymentInfo.changeFor) {
+        paymentDetails.change_for = paymentInfo.changeFor;
+        paymentDetails.change_amount = changeAmount;
+      }
+
+      if (splitInfo.enabled && splitInfo.amounts.length > 0) {
+        paymentDetails.split_info = {
+          parts: splitInfo.parts,
+          amounts: splitInfo.amounts
+        };
+      }
+
         operator_id: operator?.id,
-        customer_name: customerInfo.name || 'Cliente PDV',
-        customer_phone: customerInfo.phone || '',
+        customer_name: paymentInfo.customerName || 'Cliente PDV',
+        customer_phone: paymentInfo.customerPhone || '',
         subtotal: getSubtotal(),
         discount_amount: discountAmount,
         discount_percentage: discount.type === 'percentage' ? discount.value : 0,
         total_amount: getTotal(),
-        payment_type: paymentMethod,
-        payment_details: {
-          method: paymentMethod,
-          change_for: paymentMethod === 'dinheiro' ? changeFor : undefined,
+        payment_type: paymentInfo.method,
+        payment_details: paymentDetails,
+        change_amount: changeAmount,
+        notes: `Venda PDV - ${getPaymentMethodLabel(paymentInfo.method)}${splitInfo.enabled ? ` (Dividido em ${splitInfo.parts} partes)` : ''}`,
           split_info: splitAmounts.length > 1 ? {
             parts: splitCount,
             amounts: splitAmounts
