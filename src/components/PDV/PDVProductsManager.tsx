@@ -128,8 +128,8 @@ const PDVProductsManager: React.FC = () => {
         if (selectedImage === imageUrl) {
           setSelectedImage('');
         }
-      } catch (error) {
-        console.error('Erro ao deletar imagem:', error);
+      } catch (err) {
+        console.error('Erro ao deletar imagem:', err);
         alert('Erro ao deletar imagem. Tente novamente.');
       }
     }
