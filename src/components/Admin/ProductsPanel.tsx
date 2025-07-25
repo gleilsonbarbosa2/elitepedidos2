@@ -1,21 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { Package, Plus, Edit3, Trash2, Save, X, Search, Eye, EyeOff, Image as ImageIcon } from 'lucide-react';
-import { products } from '../../data/products';
-import { Product } from '../../types/product';
+import { Package, Plus, Edit3, Trash2, Save, X, Search, Eye, EyeOff, Image as ImageIcon, AlertCircle } from 'lucide-react';
+import { useDeliveryProducts, DeliveryProduct } from '../../hooks/useDeliveryProducts';
 import { useProductScheduling } from '../../hooks/useProductScheduling';
 import ProductScheduleModal from './ProductScheduleModal';
 import ImageUploadModal from './ImageUploadModal';
 import { useImageUpload } from '../../hooks/useImageUpload';
 
 const ProductsPanel: React.FC = () => {
-  const [localProducts, setLocalProducts] = useState<Product[]>(products);
+  const { products, loading, createProduct, updateProduct, deleteProduct, searchProducts } = useDeliveryProducts();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [editingProduct, setEditingProduct] = useState<DeliveryProduct | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
-  const [selectedProductForSchedule, setSelectedProductForSchedule] = useState<Product | null>(null);
+  const [selectedProductForSchedule, setSelectedProductForSchedule] = useState<DeliveryProduct | null>(null);
   const [showImageUpload, setShowImageUpload] = useState(false);
   const [productImages, setProductImages] = useState<Record<string, string>>({});
 
@@ -36,7 +35,7 @@ const ProductsPanel: React.FC = () => {
     const loadProductImages = async () => {
       const images: Record<string, string> = {};
       
-      for (const product of localProducts) {
+      for (const product of products) {
         try {
           const savedImage = await getProductImage(product.id);
           if (savedImage) {
@@ -50,18 +49,20 @@ const ProductsPanel: React.FC = () => {
       setProductImages(images);
     };
 
-    loadProductImages();
-  }, [localProducts, getProductImage]);
+    if (products.length > 0) {
+      loadProductImages();
+    }
+  }, [products, getProductImage]);
 
-  const filteredProducts = localProducts.filter(product => {
-    const matchesSearch = searchTerm === '' || 
-      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.description.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredProducts = React.useMemo(() => {
+    let result = searchTerm ? searchProducts(searchTerm) : products;
     
-    const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
+    if (selectedCategory !== 'all') {
+      result = result.filter(p => p.category === selectedCategory);
+    }
     
-    return matchesSearch && matchesCategory;
-  });
+    return result;
+  }, [products, searchProducts, searchTerm, selectedCategory]);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -71,14 +72,19 @@ const ProductsPanel: React.FC = () => {
   };
 
   const handleCreate = () => {
-    const newProduct: Product = {
-      id: `product-${Date.now()}`,
+    const newProduct: DeliveryProduct = {
+      id: '',
       name: '',
       category: 'acai',
       price: 0,
+      original_price: undefined,
       description: '',
-      image: 'https://images.pexels.com/photos/1092730/pexels-photo-1092730.jpeg?auto=compress&cs=tinysrgb&w=400',
-      isActive: true
+      image_url: 'https://images.pexels.com/photos/1092730/pexels-photo-1092730.jpeg?auto=compress&cs=tinysrgb&w=400',
+      is_active: true,
+      is_weighable: false,
+      price_per_gram: undefined,
+      created_at: '',
+      updated_at: ''
     };
     
     setEditingProduct(newProduct);
@@ -98,37 +104,60 @@ const ProductsPanel: React.FC = () => {
       return;
     }
 
+    if (editingProduct.is_weighable && (!editingProduct.price_per_gram || editingProduct.price_per_gram <= 0)) {
+      alert('Preço por grama é obrigatório para produtos pesáveis');
+      return;
+    }
+
     setSaving(true);
     
     try {
-      console.log('💾 Salvando produto:', editingProduct);
+      console.log('💾 Salvando produto no banco:', editingProduct);
       
       if (isCreating) {
-        // Adicionar novo produto
-        setLocalProducts(prev => [...prev, editingProduct]);
-        console.log('✅ Produto criado localmente:', editingProduct.name);
-      } else {
-        // Atualizar produto existente
-        setLocalProducts(prev => 
-          prev.map(p => p.id === editingProduct.id ? editingProduct : p)
-        );
-        console.log('✅ Produto atualizado localmente:', editingProduct.name);
-      }
-
-      // Salvar imagem se houver uma personalizada
-      if (editingProduct.image && !editingProduct.image.includes('pexels.com')) {
-        try {
-          const savedImageUrl = await saveImageToProduct(editingProduct.image, editingProduct.id);
-          if (savedImageUrl) {
-            setProductImages(prev => ({
-              ...prev,
-              [editingProduct.id]: savedImageUrl
-            }));
-            console.log('✅ Imagem salva no banco:', savedImageUrl);
+        // Criar novo produto no banco
+        const { id, created_at, updated_at, ...productData } = editingProduct;
+        const newProduct = await createProduct(productData);
+        
+        // Salvar imagem se houver uma personalizada
+        if (editingProduct.image_url && !editingProduct.image_url.includes('pexels.com')) {
+          try {
+            const savedImageUrl = await saveImageToProduct(editingProduct.image_url, newProduct.id);
+            if (savedImageUrl) {
+              setProductImages(prev => ({
+                ...prev,
+                [newProduct.id]: savedImageUrl
+              }));
+              console.log('✅ Imagem salva no banco:', savedImageUrl);
+            }
+          } catch (imageError) {
+            console.warn('⚠️ Erro ao salvar imagem (produto salvo):', imageError);
           }
-        } catch (imageError) {
-          console.warn('⚠️ Erro ao salvar imagem (produto salvo):', imageError);
         }
+        
+        console.log('✅ Produto criado no banco:', newProduct.name);
+      } else {
+        // Atualizar produto existente no banco
+        const { created_at, updated_at, ...productData } = editingProduct;
+        await updateProduct(editingProduct.id, productData);
+        
+        // Salvar imagem se houver uma personalizada
+        if (editingProduct.image_url && !editingProduct.image_url.includes('pexels.com')) {
+          try {
+            const savedImageUrl = await saveImageToProduct(editingProduct.image_url, editingProduct.id);
+            if (savedImageUrl) {
+              setProductImages(prev => ({
+                ...prev,
+                [editingProduct.id]: savedImageUrl
+              }));
+              console.log('✅ Imagem salva no banco:', savedImageUrl);
+            }
+          } catch (imageError) {
+            console.warn('⚠️ Erro ao salvar imagem (produto salvo):', imageError);
+          }
+        }
+        
+        console.log('✅ Produto atualizado no banco:', editingProduct.name);
       }
 
       // Mostrar mensagem de sucesso
@@ -138,7 +167,7 @@ const ProductsPanel: React.FC = () => {
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
         </svg>
-        Produto ${isCreating ? 'criado' : 'atualizado'} com sucesso!
+        Produto ${isCreating ? 'criado' : 'atualizado'} no banco de dados!
       `;
       document.body.appendChild(successMessage);
       
@@ -159,18 +188,46 @@ const ProductsPanel: React.FC = () => {
     }
   };
 
-  const handleDelete = (product: Product) => {
+  const handleDelete = async (product: DeliveryProduct) => {
     if (confirm(`Tem certeza que deseja excluir "${product.name}"?`)) {
-      setLocalProducts(prev => prev.filter(p => p.id !== product.id));
+      try {
+        await deleteProduct(product.id);
+        
+        // Mostrar mensagem de sucesso
+        const successMessage = document.createElement('div');
+        successMessage.className = 'fixed top-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 flex items-center gap-2';
+        successMessage.innerHTML = `
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+          </svg>
+          Produto excluído do banco de dados!
+        `;
+        document.body.appendChild(successMessage);
+        
+        setTimeout(() => {
+          if (document.body.contains(successMessage)) {
+            document.body.removeChild(successMessage);
+          }
+        }, 3000);
+      } catch (error) {
+        console.error('Erro ao excluir produto:', error);
+        alert('Erro ao excluir produto. Tente novamente.');
+      }
+    }
+  };
+
+  const handleToggleActive = async (product: DeliveryProduct) => {
+    try {
+      await updateProduct(product.id, { is_active: !product.is_active });
       
       // Mostrar mensagem de sucesso
       const successMessage = document.createElement('div');
-      successMessage.className = 'fixed top-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 flex items-center gap-2';
+      successMessage.className = 'fixed top-4 right-4 bg-blue-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 flex items-center gap-2';
       successMessage.innerHTML = `
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
         </svg>
-        Produto excluído com sucesso!
+        Status do produto alterado no banco!
       `;
       document.body.appendChild(successMessage);
       
@@ -179,33 +236,13 @@ const ProductsPanel: React.FC = () => {
           document.body.removeChild(successMessage);
         }
       }, 3000);
+    } catch (error) {
+      console.error('Erro ao alterar status:', error);
+      alert('Erro ao alterar status. Tente novamente.');
     }
   };
 
-  const handleToggleActive = (product: Product) => {
-    setLocalProducts(prev => 
-      prev.map(p => p.id === product.id ? { ...p, isActive: !p.isActive } : p)
-    );
-    
-    // Mostrar mensagem de sucesso
-    const successMessage = document.createElement('div');
-    successMessage.className = 'fixed top-4 right-4 bg-blue-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 flex items-center gap-2';
-    successMessage.innerHTML = `
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-      </svg>
-      Status do produto alterado!
-    `;
-    document.body.appendChild(successMessage);
-    
-    setTimeout(() => {
-      if (document.body.contains(successMessage)) {
-        document.body.removeChild(successMessage);
-      }
-    }, 3000);
-  };
-
-  const handleScheduleProduct = (product: Product) => {
+  const handleScheduleProduct = (product: DeliveryProduct) => {
     setSelectedProductForSchedule(product);
     setShowScheduleModal(true);
   };
@@ -238,6 +275,15 @@ const ProductsPanel: React.FC = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+        <span className="ml-2 text-gray-600">Carregando produtos do banco...</span>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -258,22 +304,34 @@ const ProductsPanel: React.FC = () => {
         </button>
       </div>
 
-      {/* Aviso sobre salvamento */}
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+      {/* Database Status */}
+      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
         <div className="flex items-start gap-2">
-          <Package size={20} className="text-yellow-600 mt-0.5 flex-shrink-0" />
-          <div className="text-sm text-yellow-800">
-            <p className="font-medium mb-1">⚠️ Importante sobre o Salvamento de Produtos:</p>
-            <ul className="list-disc list-inside space-y-1 text-yellow-700">
-              <li><strong>Produtos são salvos localmente</strong> na sessão do navegador</li>
-              <li><strong>Programações de dias</strong> são salvas no banco de dados Supabase</li>
+          <Package size={20} className="text-green-600 mt-0.5 flex-shrink-0" />
+          <div className="text-sm text-green-800">
+            <p className="font-medium mb-1">✅ Salvamento no Banco de Dados Ativo</p>
+            <ul className="list-disc list-inside space-y-1 text-green-700">
+              <li><strong>Produtos são salvos permanentemente</strong> no banco de dados Supabase</li>
+              <li><strong>Programações de dias</strong> são salvas no banco de dados</li>
               <li><strong>Imagens personalizadas</strong> são salvas no banco de dados</li>
-              <li>Para persistir produtos permanentemente, seria necessário implementar backend</li>
-              <li>As alterações de produtos são temporárias (apenas na sessão atual)</li>
+              <li><strong>Sincronização automática</strong> entre todos os dispositivos</li>
+              <li>Todas as alterações são <strong>persistentes e permanentes</strong></li>
             </ul>
           </div>
         </div>
       </div>
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex items-start gap-2">
+            <AlertCircle size={20} className="text-red-600 mt-0.5 flex-shrink-0" />
+            <div className="text-sm text-red-800">
+              <p className="font-medium mb-1">Erro ao carregar produtos</p>
+              <p>{error}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Search and Filters */}
       <div className="bg-white rounded-xl shadow-sm p-4">
@@ -311,12 +369,12 @@ const ProductsPanel: React.FC = () => {
           <div key={product.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div className="relative">
               <img
-                src={productImages[product.id] || product.image}
+                src={productImages[product.id] || product.image_url || 'https://images.pexels.com/photos/1092730/pexels-photo-1092730.jpeg?auto=compress&cs=tinysrgb&w=400'}
                 alt={product.name}
                 className="w-full h-48 object-cover"
               />
               
-              {!product.isActive && (
+              {!product.is_active && (
                 <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
                   <span className="bg-white text-gray-800 px-3 py-1 rounded-full text-sm font-medium">
                     Inativo
@@ -324,9 +382,15 @@ const ProductsPanel: React.FC = () => {
                 </div>
               )}
               
-              {product.originalPrice && product.originalPrice > product.price && (
+              {product.original_price && product.original_price > product.price && (
                 <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold">
                   PROMOÇÃO
+                </div>
+              )}
+
+              {product.is_weighable && (
+                <div className="absolute top-2 right-2 bg-blue-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+                  PESÁVEL
                 </div>
               )}
             </div>
@@ -337,14 +401,18 @@ const ProductsPanel: React.FC = () => {
               
               <div className="flex items-center justify-between mb-3">
                 <div>
-                  {product.originalPrice && product.originalPrice > product.price ? (
+                  {product.original_price && product.original_price > product.price ? (
                     <div className="flex items-center gap-2">
                       <span className="text-purple-600 font-bold text-lg">
                         {formatPrice(product.price)}
                       </span>
                       <span className="text-gray-500 line-through text-sm">
-                        {formatPrice(product.originalPrice)}
+                        {formatPrice(product.original_price)}
                       </span>
+                    </div>
+                  ) : product.is_weighable && product.price_per_gram ? (
+                    <div className="text-purple-600 font-bold text-lg">
+                      {formatPrice(product.price_per_gram * 1000)}/kg
                     </div>
                   ) : (
                     <span className="text-purple-600 font-bold text-lg">
@@ -358,6 +426,7 @@ const ProductsPanel: React.FC = () => {
                   product.category === 'combo' ? 'bg-blue-100 text-blue-800' :
                   product.category === 'milkshake' ? 'bg-green-100 text-green-800' :
                   product.category === 'vitamina' ? 'bg-orange-100 text-orange-800' :
+                  product.category === 'sorvetes' ? 'bg-pink-100 text-pink-800' :
                   'bg-gray-100 text-gray-800'
                 }`}>
                   {categories.find(c => c.id === product.category)?.label || product.category}
@@ -376,13 +445,13 @@ const ProductsPanel: React.FC = () => {
                 <button
                   onClick={() => handleToggleActive(product)}
                   className={`p-2 rounded-lg transition-colors ${
-                    product.isActive
+                    product.is_active
                       ? 'bg-green-100 text-green-600 hover:bg-green-200'
                       : 'bg-red-100 text-red-600 hover:bg-red-200'
                   }`}
-                  title={product.isActive ? 'Desativar produto' : 'Ativar produto'}
+                  title={product.is_active ? 'Desativar produto' : 'Ativar produto'}
                 >
-                  {product.isActive ? <Eye size={16} /> : <EyeOff size={16} />}
+                  {product.is_active ? <Eye size={16} /> : <EyeOff size={16} />}
                 </button>
                 
                 <button
@@ -447,7 +516,7 @@ const ProductsPanel: React.FC = () => {
                 </label>
                 <div className="flex items-center gap-4">
                   <img
-                    src={productImages[editingProduct.id] || editingProduct.image}
+                    src={productImages[editingProduct.id] || editingProduct.image_url || 'https://via.placeholder.com/100?text=Sem+Imagem'}
                     alt="Preview"
                     className="w-20 h-20 object-cover rounded-lg border border-gray-300"
                   />
@@ -487,7 +556,7 @@ const ProductsPanel: React.FC = () => {
                   value={editingProduct.category}
                   onChange={(e) => setEditingProduct({
                     ...editingProduct,
-                    category: e.target.value as Product['category']
+                    category: e.target.value as DeliveryProduct['category']
                   })}
                   className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
@@ -497,24 +566,59 @@ const ProductsPanel: React.FC = () => {
                 </select>
               </div>
 
+              {/* Weighable */}
+              <div>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={editingProduct.is_weighable}
+                    onChange={(e) => setEditingProduct({
+                      ...editingProduct,
+                      is_weighable: e.target.checked,
+                      price_per_gram: e.target.checked ? (editingProduct.price_per_gram || 0.045) : undefined
+                    })}
+                    className="w-4 h-4 text-purple-600"
+                  />
+                  <span className="text-sm font-medium text-gray-700">
+                    Produto pesável (vendido por peso)
+                  </span>
+                </label>
+              </div>
+
               {/* Price */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Preço Atual (R$) *
+                    {editingProduct.is_weighable ? 'Preço por Grama (R$) *' : 'Preço Atual (R$) *'}
                   </label>
                   <input
                     type="number"
                     step="0.01"
                     min="0"
-                    value={editingProduct.price}
-                    onChange={(e) => setEditingProduct({
-                      ...editingProduct,
-                      price: parseFloat(e.target.value) || 0
-                    })}
+                    value={editingProduct.is_weighable ? editingProduct.price_per_gram || '' : editingProduct.price}
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value) || 0;
+                      if (editingProduct.is_weighable) {
+                        setEditingProduct({
+                          ...editingProduct,
+                          price_per_gram: value,
+                          price: value * 1000 // Preço por kg para exibição
+                        });
+                      } else {
+                        setEditingProduct({
+                          ...editingProduct,
+                          price: value
+                        });
+                      }
+                    }}
                     className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                     placeholder="0.00"
                   />
+                  {editingProduct.is_weighable && editingProduct.price_per_gram && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Preço por kg: {formatPrice(editingProduct.price_per_gram * 1000)}
+                    </p>
+                  )}
                 </div>
                 
                 <div>
@@ -525,10 +629,10 @@ const ProductsPanel: React.FC = () => {
                     type="number"
                     step="0.01"
                     min="0"
-                    value={editingProduct.originalPrice || ''}
+                    value={editingProduct.original_price || ''}
                     onChange={(e) => setEditingProduct({
                       ...editingProduct,
-                      originalPrice: parseFloat(e.target.value) || undefined
+                      original_price: parseFloat(e.target.value) || undefined
                     })}
                     className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                     placeholder="0.00 (opcional)"
@@ -560,10 +664,10 @@ const ProductsPanel: React.FC = () => {
                 <label className="flex items-center gap-2">
                   <input
                     type="checkbox"
-                    checked={editingProduct.isActive !== false}
+                    checked={editingProduct.is_active !== false}
                     onChange={(e) => setEditingProduct({
                       ...editingProduct,
-                      isActive: e.target.checked
+                      is_active: e.target.checked
                     })}
                     className="w-4 h-4 text-purple-600"
                   />
@@ -592,12 +696,12 @@ const ProductsPanel: React.FC = () => {
                 {saving ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    Salvando...
+                    Salvando no Banco...
                   </>
                 ) : (
                   <>
                     <Save size={16} />
-                    {isCreating ? 'Criar Produto' : 'Salvar Alterações'}
+                    {isCreating ? 'Criar no Banco' : 'Salvar no Banco'}
                   </>
                 )}
               </button>
@@ -609,7 +713,15 @@ const ProductsPanel: React.FC = () => {
       {/* Product Schedule Modal */}
       {showScheduleModal && selectedProductForSchedule && (
         <ProductScheduleModal
-          product={selectedProductForSchedule}
+          product={{
+            id: selectedProductForSchedule.id,
+            name: selectedProductForSchedule.name,
+            category: selectedProductForSchedule.category,
+            price: selectedProductForSchedule.price,
+            description: selectedProductForSchedule.description,
+            image: selectedProductForSchedule.image_url || '',
+            originalPrice: selectedProductForSchedule.original_price
+          }}
           isOpen={showScheduleModal}
           onClose={() => {
             setShowScheduleModal(false);
@@ -629,7 +741,7 @@ const ProductsPanel: React.FC = () => {
             if (editingProduct) {
               setEditingProduct({
                 ...editingProduct,
-                image: imageUrl
+                image_url: imageUrl
               });
               
               // Atualizar preview local
@@ -640,7 +752,7 @@ const ProductsPanel: React.FC = () => {
             }
             setShowImageUpload(false);
           }}
-          currentImage={productImages[editingProduct?.id || ''] || editingProduct?.image}
+          currentImage={productImages[editingProduct?.id || ''] || editingProduct?.image_url}
         />
       )}
     </div>
