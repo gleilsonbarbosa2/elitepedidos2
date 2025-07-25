@@ -102,13 +102,24 @@ const StoreHoursPanel: React.FC = () => {
       
       for (const [dayStr, hours] of Object.entries(localHours)) {
         const day = parseInt(dayStr);
-        savePromises.push(updateStoreHours(day, hours));
+        if (Object.keys(hours).length > 0) {
+          console.log('💾 Salvando horário do dia', day, ':', hours);
+          savePromises.push(updateStoreHours(day, hours));
+        }
       }
 
       // Salvar configurações da loja
-      savePromises.push(updateStoreSettings(localSettings));
+      if (hasSettingsChanges()) {
+        console.log('💾 Salvando configurações da loja:', localSettings);
+        savePromises.push(updateStoreSettings(localSettings));
+      }
 
-      await Promise.all(savePromises);
+      if (savePromises.length > 0) {
+        await Promise.all(savePromises);
+        console.log('✅ Todas as alterações foram salvas');
+      } else {
+        console.log('ℹ️ Nenhuma alteração para salvar');
+      }
 
       // Limpar alterações locais
       setLocalHours({});
@@ -125,20 +136,40 @@ const StoreHoursPanel: React.FC = () => {
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
         </svg>
-        Configurações salvas com sucesso!
+        Configurações salvas no banco de dados!
       `;
       document.body.appendChild(successMessage);
       
       setTimeout(() => {
-        document.body.removeChild(successMessage);
+        if (document.body.contains(successMessage)) {
+          document.body.removeChild(successMessage);
+        }
       }, 3000);
       
     } catch (error) {
       console.error('Erro ao salvar:', error);
-      alert('Erro ao salvar configurações. Tente novamente.');
+      
+      // Mostrar erro específico
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      alert(`Erro ao salvar configurações: ${errorMessage}\n\nVerifique:\n• Conexão com internet\n• Configuração do Supabase\n• Permissões de acesso`);
     } finally {
       setSaving(false);
     }
+  };
+
+  // Função para verificar se há mudanças nas configurações
+  const hasSettingsChanges = () => {
+    if (!storeSettings) return true; // Se não há configurações, sempre salvar
+    
+    return JSON.stringify(localSettings) !== JSON.stringify({
+      store_name: storeSettings.store_name || '',
+      phone: storeSettings.phone || '',
+      address: storeSettings.address || '',
+      delivery_fee: storeSettings.delivery_fee || 0,
+      min_order_value: storeSettings.min_order_value || 0,
+      estimated_delivery_time: storeSettings.estimated_delivery_time || 0,
+      is_open_now: storeSettings.is_open_now ?? true
+    });
   };
 
   const handleRefresh = async () => {
@@ -153,15 +184,18 @@ const StoreHoursPanel: React.FC = () => {
         <svg class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
         </svg>
-        Dados atualizados!
+        Dados recarregados do banco!
       `;
       document.body.appendChild(refreshMessage);
       
       setTimeout(() => {
-        document.body.removeChild(refreshMessage);
+        if (document.body.contains(refreshMessage)) {
+          document.body.removeChild(refreshMessage);
+        }
       }, 2000);
     } catch (error) {
       console.error('Erro ao atualizar dados:', error);
+      alert('Erro ao recarregar dados do banco de dados');
     }
   };
 
@@ -519,13 +553,14 @@ const StoreHoursPanel: React.FC = () => {
                           <Info size={16} className="text-blue-600 mt-0.5" />
                           <div className="text-sm text-blue-700">
                             <p className="font-medium">Horário que cruza meia-noite</p>
-                            <p>Este horário funciona de {hours.open_time} até {hours.close_time} do dia seguinte.</p>
+                  <li>• <strong>Salvamento:</strong> Dados são salvos diretamente no banco Supabase</li>
+                  <li>• <strong>Sincronização:</strong> Mudanças aparecem automaticamente em todos os dispositivos</li>
                             <p className="text-xs mt-1">
                               Exemplo: Abre às {hours.open_time} e fecha às {hours.close_time} da madrugada.
                             </p>
-                          </div>
+                  <li>• <strong>Delivery:</strong> As configurações afetam todo o sistema de delivery</li>
                         </div>
-                      </div>
+                  <li>• <strong>Realtime:</strong> O sistema atualiza automaticamente via Supabase</li>
                     )}
                   </>
                 )}

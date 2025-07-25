@@ -38,6 +38,8 @@ export const useStoreHours = () => {
 
   const updateStoreHours = useCallback(async (dayOfWeek: number, hours: Partial<StoreHours>) => {
     try {
+      console.log('🔄 Atualizando horário no banco:', { dayOfWeek, hours });
+      
       const { data, error } = await supabase
         .from('store_hours')
         .upsert({
@@ -50,7 +52,12 @@ export const useStoreHours = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Erro ao atualizar horário:', error);
+        throw error;
+      }
+      
+      console.log('✅ Horário atualizado com sucesso:', data);
 
       // Atualizar estado local imediatamente
       setStoreHours(prev => {
@@ -60,12 +67,15 @@ export const useStoreHours = () => {
 
       return data;
     } catch (err) {
+      console.error('❌ Erro na função updateStoreHours:', err);
       throw new Error(err instanceof Error ? err.message : 'Erro ao atualizar horário');
     }
   }, []);
 
   const updateStoreSettings = useCallback(async (settings: Partial<StoreSettings>) => {
     try {
+      console.log('🔄 Atualizando configurações no banco:', settings);
+      
       const { data, error } = await supabase
         .from('store_settings')
         .upsert({
@@ -78,13 +88,19 @@ export const useStoreHours = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Erro ao atualizar configurações:', error);
+        throw error;
+      }
+      
+      console.log('✅ Configurações atualizadas com sucesso:', data);
       
       // Atualizar estado local imediatamente
       setStoreSettings(data);
       
       return data;
     } catch (err) {
+      console.error('❌ Erro na função updateStoreSettings:', err);
       throw new Error(err instanceof Error ? err.message : 'Erro ao atualizar configurações');
     }
   }, [storeSettings]);
