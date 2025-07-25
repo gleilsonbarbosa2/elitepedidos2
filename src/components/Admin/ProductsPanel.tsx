@@ -7,7 +7,7 @@ import ImageUploadModal from './ImageUploadModal';
 import { useImageUpload } from '../../hooks/useImageUpload';
 
 const ProductsPanel: React.FC = () => {
-  const { products, loading, createProduct, updateProduct, deleteProduct, searchProducts } = useDeliveryProducts();
+  const { products, loading, error, createProduct, updateProduct, deleteProduct, searchProducts } = useDeliveryProducts();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [editingProduct, setEditingProduct] = useState<DeliveryProduct | null>(null);
