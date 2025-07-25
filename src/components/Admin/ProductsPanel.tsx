@@ -41,8 +41,8 @@ const ProductsPanel: React.FC = () => {
           if (savedImage) {
             images[product.id] = savedImage;
           }
-        } catch (error) {
-          console.warn(`Erro ao carregar imagem do produto ${product.name}:`, error);
+        } catch (err) {
+          console.warn(`Erro ao carregar imagem do produto ${product.name}:`, err);
         }
       }
       
@@ -180,9 +180,9 @@ const ProductsPanel: React.FC = () => {
       setEditingProduct(null);
       setIsCreating(false);
       
-    } catch (error) {
-      console.error('❌ Erro ao salvar produto:', error);
-      alert(`Erro ao salvar produto: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+    } catch (err: any) {
+      console.error('❌ Erro ao salvar produto:', err);
+      alert(`Erro ao salvar produto: ${err instanceof Error ? err.message : 'Erro desconhecido'}`);
     } finally {
       setSaving(false);
     }
@@ -209,8 +209,8 @@ const ProductsPanel: React.FC = () => {
             document.body.removeChild(successMessage);
           }
         }, 3000);
-      } catch (error) {
-        console.error('Erro ao excluir produto:', error);
+      } catch (err: any) {
+        console.error('Erro ao excluir produto:', err);
         alert('Erro ao excluir produto. Tente novamente.');
       }
     }
@@ -236,8 +236,8 @@ const ProductsPanel: React.FC = () => {
           document.body.removeChild(successMessage);
         }
       }, 3000);
-    } catch (error) {
-      console.error('Erro ao alterar status:', error);
+    } catch (err: any) {
+      console.error('Erro ao alterar status:', err);
       alert('Erro ao alterar status. Tente novamente.');
     }
   };
@@ -269,8 +269,8 @@ const ProductsPanel: React.FC = () => {
           document.body.removeChild(successMessage);
         }
       }, 3000);
-    } catch (error) {
-      console.error('Erro ao salvar programação:', error);
+    } catch (err: any) {
+      console.error('Erro ao salvar programação:', err);
       alert('Erro ao salvar programação. Tente novamente.');
     }
   };
@@ -327,7 +327,7 @@ const ProductsPanel: React.FC = () => {
             <AlertCircle size={20} className="text-red-600 mt-0.5 flex-shrink-0" />
             <div className="text-sm text-red-800">
               <p className="font-medium mb-1">Erro ao carregar produtos</p>
-              <p>{error}</p>
+              <p>{loading ? 'Carregando...' : 'Erro ao conectar com o banco de dados'}</p>
             </div>
           </div>
         </div>

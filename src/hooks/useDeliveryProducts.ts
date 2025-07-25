@@ -51,9 +51,9 @@ export const useDeliveryProducts = () => {
       console.log(`✅ ${data?.length || 0} produtos carregados do banco`);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar produtos';
-      console.error('❌ Erro ao carregar produtos:', errorMessage);
-      setError(errorMessage);
-      setProducts([]);
+    } catch (err: any) {
+      console.error('❌ Erro ao carregar produtos:', err);
+      throw new Error(`Erro ao carregar produtos: ${err.message || 'Erro desconhecido'}`);
     } finally {
       setLoading(false);
     }
@@ -147,9 +147,9 @@ export const useDeliveryProducts = () => {
     loading,
     error,
     createProduct,
-    updateProduct,
-    deleteProduct,
-    searchProducts,
+    } catch (err: any) {
+      console.error('❌ Erro ao excluir produto:', err);
+      throw err;
     refetch: fetchProducts
   };
 };
