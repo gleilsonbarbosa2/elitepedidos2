@@ -209,8 +209,8 @@ const ProductsPanel: React.FC = () => {
             document.body.removeChild(successMessage);
           }
         }, 3000);
-      } catch (err: any) {
-        console.error('Erro ao excluir produto:', err);
+    } catch (err: any) {
+      console.error('Erro ao salvar programação:', err);
         alert('Erro ao excluir produto. Tente novamente.');
       }
     }
@@ -327,7 +327,7 @@ const ProductsPanel: React.FC = () => {
             <AlertCircle size={20} className="text-red-600 mt-0.5 flex-shrink-0" />
             <div className="text-sm text-red-800">
               <p className="font-medium mb-1">Erro ao carregar produtos</p>
-              <p>{loading ? 'Carregando...' : 'Erro ao conectar com o banco de dados'}</p>
+              <p>Verifique a conexão com o banco de dados</p>
             </div>
           </div>
         </div>

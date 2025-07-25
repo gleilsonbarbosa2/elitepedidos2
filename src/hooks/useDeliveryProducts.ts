@@ -21,10 +21,12 @@ export const useDeliveryProducts = () => {
   const [products, setProducts] = useState<DeliveryProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchProducts = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
       setError(null);
       
       // Check if Supabase is properly configured
@@ -43,7 +45,8 @@ export const useDeliveryProducts = () => {
       
       const { data, error } = await supabase
         .from('delivery_products')
-        .select('*')
+        setError(`Erro ao carregar produtos: ${supabaseError.message}`);
+        return;
         .order('name');
 
       if (error) throw error;
@@ -53,7 +56,7 @@ export const useDeliveryProducts = () => {
       const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar produtos';
     } catch (err: any) {
       console.error('❌ Erro ao carregar produtos:', err);
-      throw new Error(`Erro ao carregar produtos: ${err.message || 'Erro desconhecido'}`);
+      setError(err instanceof Error ? err.message : 'Erro desconhecido');
     } finally {
       setLoading(false);
     }
@@ -145,6 +148,7 @@ export const useDeliveryProducts = () => {
   return {
     products,
     loading,
+    error,
     error,
     createProduct,
     } catch (err: any) {
